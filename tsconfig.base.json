@@ -1,0 +1,45 @@
+{
+  // Shared compiler settings. Each package's tsconfig.json extends this file
+  // and only adds what is specific to it (DOM types, Node types, ...).
+  "compilerOptions": {
+    // --- What JavaScript we target ---
+    "target": "ES2023",
+    "lib": ["ES2023"],
+
+    // --- How imports are resolved ---
+    // "bundler" matches how our code actually runs: Vite (web), tsx (api in
+    // dev), and a bundler for the api in production. It lets shared's
+    // package.json point at .ts source files (Decision D17).
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+
+    // --- Strictness ---
+    "strict": true,
+    // arr[0] and obj[key] are typed "T | undefined": the item may not exist.
+    "noUncheckedIndexedAccess": true,
+    // Every code path in a function that returns a value must return one.
+    "noImplicitReturns": true,
+    // A switch case must end with break/return; no accidental fall-through.
+    "noFallthroughCasesInSwitch": true,
+    // Overriding a class method requires the `override` keyword.
+    "noImplicitOverride": true,
+
+    // --- Module syntax rules ---
+    // Type-only imports must say `import type`, so tools that strip types
+    // file-by-file (tsx, Vite, bundlers) know the import can be erased.
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // --- Output ---
+    // tsc only type-checks. Running/building is done by tsx, Vite, a bundler.
+    "noEmit": true,
+    // Don't type-check the .d.ts files inside node_modules (slow, not our code).
+    "skipLibCheck": true,
+    // Load no global type packages by default; each package opts in to what
+    // it needs (e.g. the api adds "node").
+    "types": []
+  }
+}

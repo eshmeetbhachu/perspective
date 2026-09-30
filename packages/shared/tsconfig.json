@@ -1,0 +1,6 @@
+{
+  // No DOM and no Node types: shared code must run in both the browser and
+  // the server, so it may only use plain JavaScript features.
+  "extends": "../../tsconfig.base.json",
+  "include": ["src"]
+}

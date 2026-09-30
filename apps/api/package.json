@@ -5,5 +5,8 @@
   "type": "module",
   "dependencies": {
     "@perspective/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4"
   }
 }

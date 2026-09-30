@@ -5,5 +5,19 @@
   "packageManager": "pnpm@12.8.1",
   "engines": {
     "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p packages/shared && tsc -p apps/api && tsc -p apps/web",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "3.9.9",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.0"
   }
 }

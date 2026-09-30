@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Node's globals and built-in modules (process, Buffer, node:fs, ...).
+    "types": ["node"]
+  },
+  "include": ["src"]
+}
