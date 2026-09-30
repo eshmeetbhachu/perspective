@@ -1,0 +1,239 @@
+# Perspective — Full Project Roadmap
+
+A platform where people understand viewpoints before debating them. Questions are split into **For / Neutral / Against**, posts explain reasoning, and debate only happens inside **Challenges**.
+
+---
+
+## How we work
+
+- You drive every phase. I write code, then explain every file, every line that matters, and every decision.
+- You run it, read it, break it, and commit it yourself.
+- Anything marked **🟡 Your call** is a decision you make before we build that part.
+- Every decision gets written into the Decision Log below, with *why*. By the end, you should be able to defend each one in an interview.
+
+---
+
+## Decision Log
+
+| # | Decision | Why |
+|---|----------|-----|
+| D1 | TypeScript everywhere (React + Vite, Node + Fastify) | One language, shared types between frontend and backend |
+| D2 | PostgreSQL | Data is relational (users → posts → votes → challenges → comments); teaches indexes, joins, transactions, query plans |
+| D3 | Topics are **questions** that can be answered For / Neutral / Against | "Abortion" can't be split; "Should abortion be legal?" can |
+| D4 | The **author's stance** lives on the post | It decides which column the post appears in |
+| D5 | The **reader's stance** lives on (user + question), not on posts | Needed for cross-side ranking; one stance per person per question |
+| D6 | A reader must declare a stance on a question before marking posts "helpful" there (browsing needs no stance) | Without it, cross-side credit can't be computed |
+| D7 | Each helpful vote stores a **snapshot** of the voter's stance at vote time | If someone changes their stance later, old votes keep their meaning, and scores don't need recomputing |
+| D8 | Stance changes are allowed, logged in history, and limited to one per 24h per question | People should be able to change their minds (that's the whole point), but rapid flipping to game scores is blocked |
+| D9 | Only positive "This helped me understand" votes, no downvotes | Downvotes become "I disagree" buttons; bad content is handled by reports instead |
+| D10 | Ranking rewards **cross-side** helpfulness | Matches the vision: reward understanding, not tribal agreement |
+| D11 | Comment trees use an **adjacency list** (`parent_id`) + recursive SQL | Simplest to write; Postgres loads whole trees with one recursive query |
+| D12 | Session cookies (httpOnly) instead of JWT in localStorage | Sessions can be revoked instantly (logout, ban); cookies can't be read by injected JavaScript |
+| D13 | Modular monolith first, split services only when measurements demand it | You learn *why* to split, instead of splitting by default |
+| D14 | Cursor pagination instead of page numbers (offset) | Offset gets slower on deep pages and skips/duplicates items when new posts arrive |
+| D15 | Soft deletes for posts and comments | Challenges and replies that point at a deleted post don't break; moderators keep a record |
+| D16 | Project name is **Perspective**; workspace packages use the `@perspective/*` scope | Final name chosen up front so package names, container names, and docs don't need renaming later; the scope makes internal imports (`@perspective/shared`) clearly distinct from npm packages |
+
+---
+
+## Architecture
+
+### Starting architecture (Phases 0–8)
+
+```mermaid
+flowchart LR
+  B[Browser<br/>React + Vite] -->|HTTPS + cookie| A[Fastify API<br/>modular monolith]
+  A --> P[(PostgreSQL)]
+  A --> E[Email service<br/>verification, resets]
+```
+
+### Scaled architecture (Phase 9, only after measuring)
+
+```mermaid
+flowchart LR
+  B[Browser] --> CDN[CDN<br/>static files]
+  B --> LB[Load balancer]
+  LB --> A1[API instance 1]
+  LB --> A2[API instance 2]
+  A1 & A2 --> R[(Redis<br/>cache, rate limits, sessions)]
+  A1 & A2 --> P[(Postgres primary<br/>writes)]
+  A1 & A2 --> PR[(Read replica<br/>reads)]
+  A1 & A2 --> Q[Job queue<br/>BullMQ]
+  Q --> W[Worker<br/>scores, emails, search sync]
+  W --> S[(Search engine<br/>Meilisearch)]
+```
+
+### Backend module layout
+
+Each module owns its routes, validation schemas, business logic, and database queries.
+
+```
+apps/api/src/
+  modules/
+    auth/        register, login, sessions, email verify, password reset
+    users/       profiles
+    questions/   create, search, similar-question suggestions
+    stances/     declare / change reader stance, history
+    posts/       CRUD, three-column listing
+    votes/       helpful votes, score updates
+    challenges/  challenge a post
+    comments/    threaded replies
+    moderation/  reports, bans, admin actions
+  db/            schema, migrations, connection
+  plugins/       auth guard, rate limiting, error handling, security headers
+```
+
+---
+
+## Data Model
+
+```mermaid
+erDiagram
+  USERS ||--o{ SESSIONS : has
+  USERS ||--o{ QUESTIONS : creates
+  USERS ||--o{ USER_STANCES : declares
+  QUESTIONS ||--o{ USER_STANCES : "answered by"
+  USERS ||--o{ STANCE_HISTORY : logs
+  QUESTIONS ||--o{ POSTS : contains
+  USERS ||--o{ POSTS : writes
+  POSTS ||--o{ POST_VOTES : receives
+  USERS ||--o{ POST_VOTES : casts
+  POSTS ||--o{ CHALLENGES : "challenged by"
+  CHALLENGES ||--o{ COMMENTS : contains
+  COMMENTS ||--o{ COMMENTS : "replies to"
+  USERS ||--o{ REPORTS : files
+```
+
+| Table | Key columns | Notes |
+|-------|-------------|-------|
+| `users` | id, username, email (unique, case-insensitive), password_hash, role (user/moderator/admin), email_verified_at, banned_at, created_at | |
+| `sessions` | id, user_id, token_hash, expires_at, ip, user_agent | Only the **hash** of the token is stored |
+| `questions` | id, title, slug, description, created_by, status, search_vector, created_at | `search_vector` powers full-text search |
+| `user_stances` | user_id, question_id, stance, updated_at | Primary key (user_id, question_id): one stance per person per question |
+| `stance_history` | id, user_id, question_id, from_stance, to_stance, changed_at | Enables "changed my mind" insights later |
+| `posts` | id, question_id, author_id, stance, title, body, helpful_score, cross_side_count, created_at, edited_at, deleted_at | Score stored on the row (precomputed) |
+| `post_votes` | user_id, post_id, voter_stance, created_at | Primary key (user_id, post_id): one vote per person per post |
+| `challenges` | id, post_id, created_by, title, body, status, created_at | |
+| `comments` | id, challenge_id, parent_id, author_id, body, depth, created_at, deleted_at | Max depth enforced |
+| `reports` | id, reporter_id, target_type, target_id, reason, status, resolved_by, resolved_at | |
+| `audit_log` | id, actor_id, action, target_type, target_id, created_at | Every moderator/admin action |
+
+`stance` is a Postgres enum: `for`, `neutral`, `against`.
+
+### Cross-side scoring (first version, will be tuned)
+
+When a user marks a post helpful, the weight depends on the voter's stance compared with the post's stance:
+
+| Voter vs post | Weight |
+|---|---|
+| Same side | 1 |
+| Neutral voter, or neutral post | 2 |
+| Opposite side | 3 |
+
+- **Top** sort: total `helpful_score`.
+- **Hot** sort: `helpful_score / (hours_since_posted + 2)^1.5` (older posts slowly sink).
+- The score is updated in the **same database transaction** as the vote, so the listing never recomputes it.
+
+🟡 **Your call (Phase 4):** tune the weights, and decide whether votes from brand-new accounts count immediately.
+
+**Known weakness:** someone can declare a false stance to boost their own side. D7 and D8 make that harder, but they can't stop it completely. Keep this in mind; it makes a great "limitations and future work" section.
+
+---
+
+## Security Checklist (built in from Phase 1, not added at the end)
+
+- [ ] Passwords hashed with **argon2id**
+- [ ] Session cookie: `httpOnly`, `Secure`, `SameSite=Lax`; session token stored hashed; rotated on login
+- [ ] CSRF protection on every state-changing request
+- [ ] Every request body, query, and param validated with a schema (TypeBox / Zod)
+- [ ] Only parameterized queries (the ORM does this; never build SQL with string concatenation)
+- [ ] User content rendered as plain text or sanitized Markdown (DOMPurify): blocks XSS
+- [ ] Authorization checked on every write ("does this user own this post?"), not just authentication
+- [ ] Rate limiting on login, register, password reset, posting, voting
+- [ ] Security headers via `@fastify/helmet`; strict CORS (only your frontend's origin)
+- [ ] Email verification required before posting or voting
+- [ ] Password-reset tokens: random, hashed, single-use, expire in 30 minutes
+- [ ] Generic login errors ("wrong email or password"), so emails can't be enumerated
+- [ ] Secrets only in environment variables, never committed; `.env.example` committed instead
+- [ ] Database user with least privileges (no superuser for the app)
+- [ ] Logs never contain passwords, tokens, or full emails
+- [ ] `pnpm audit` + Dependabot in CI
+- [ ] HTTPS everywhere in production; automated database backups, with a tested restore
+
+---
+
+## Phases
+
+### Phase 0: Foundation
+- [ ] Monorepo with pnpm workspaces: `apps/web`, `apps/api`, `packages/shared`
+- [ ] TypeScript strict mode, ESLint, Prettier
+- [ ] Docker Compose running Postgres locally
+- [ ] Environment config with validation (the app refuses to start if a variable is missing)
+- [ ] Fastify server with health check, structured logging (Pino), and central error handling
+- [ ] Drizzle ORM set up with a migrations workflow
+- [ ] Git repo, commit conventions, README
+- ✅ **Your call:** project name → **Perspective** (D16)
+
+### Phase 1: Authentication
+- [ ] `users` + `sessions` tables and migrations
+- [ ] Register, login, logout, "who am I" endpoint
+- [ ] Email verification, and forgot/reset password (dev: emails print to console; prod: real provider)
+- [ ] Auth guard plugin; roles
+- [ ] Rate limiting on auth routes
+- [ ] Frontend: React Router, TanStack Query, auth pages, protected routes
+
+### Phase 2: Questions
+- [ ] Create question (verified users), view question, list/browse
+- [ ] Full-text search (Postgres `tsvector` + GIN index)
+- [ ] "Did you mean…?" similar-question suggestions while typing (`pg_trgm`)
+- [ ] Slugs for readable URLs
+- 🟡 **Your call:** can anyone create questions, or do new ones need approval?
+
+### Phase 3: Stances and Posts
+- [ ] Declare/change stance (cooldown + history)
+- [ ] Create/edit/soft-delete posts with an author stance
+- [ ] Three-column question page (For / Neutral / Against), each with cursor pagination
+- [ ] Markdown editor + sanitized rendering
+
+### Phase 4: Helpful Votes and Ranking
+- [ ] Vote / unvote, with stance snapshot and transactional score update
+- [ ] Top and Hot sorting, with indexes to support both
+- [ ] UI: "Helped me understand" button, and a "valued across sides" badge
+
+### Phase 5: Challenges and Discussion Threads
+- [ ] Challenge a post → dedicated challenge page
+- [ ] Threaded comments (recursive CTE), depth limit, "continue thread" for deep chains
+- [ ] Notifications when your post is challenged or someone replies to you
+
+### Phase 6: Moderation
+- [ ] Report posts, challenges, comments
+- [ ] Moderator dashboard: review, remove, ban
+- [ ] Audit log of every moderator action
+- [ ] Basic automated checks (spam/rate patterns)
+
+### Phase 7: Testing
+- [ ] Unit tests (Vitest) for scoring, validation, and permissions
+- [ ] Integration tests against a real test database
+- [ ] End-to-end tests (Playwright) for the main user flows
+- [ ] Seed script that generates realistic data (also used for load testing)
+
+### Phase 8: Deployment
+- [ ] Dockerfiles for API and web
+- [ ] GitHub Actions CI: lint, type-check, test, audit on every push
+- [ ] Deploy API + managed Postgres + static frontend
+- [ ] Migrations run automatically on deploy
+- [ ] Domain, HTTPS, backups, error monitoring
+- 🟡 **Your call:** hosting provider (we'll compare cost vs control when we get here)
+
+### Phase 9: Scalability (the learning goal)
+Every step follows the same loop: **measure → find the bottleneck → change one thing → measure again → write down what changed.**
+- [ ] Seed millions of rows; load test with k6; record baseline numbers
+- [ ] Read query plans (`EXPLAIN ANALYZE`); fix with indexes
+- [ ] Redis caching for hot questions and listings; cache invalidation
+- [ ] Move sessions and rate limits to Redis, so multiple API instances work
+- [ ] Run multiple API instances behind a load balancer
+- [ ] Background jobs (BullMQ) for emails, notifications, and score recalculation
+- [ ] Read replica for heavy read traffic
+- [ ] Dedicated search engine if Postgres search becomes the bottleneck
+- [ ] Observability: metrics, dashboards, tracing (OpenTelemetry)
+- [ ] Write-up: before/after numbers for every change (great for your resume and interviews)
