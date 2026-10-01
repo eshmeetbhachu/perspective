@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev:api": "pnpm --filter @perspective/api dev",
+    "db:generate": "pnpm --filter @perspective/api db:generate",
+    "db:migrate": "pnpm --filter @perspective/api db:migrate",
     "typecheck": "tsc -p packages/shared && tsc -p apps/api && tsc -p apps/web",
     "lint": "eslint .",
     "format": "prettier --write .",

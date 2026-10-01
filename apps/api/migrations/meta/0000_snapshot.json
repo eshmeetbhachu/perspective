@@ -1,0 +1,28 @@
+{
+  "id": "279bf447-c8e3-4717-8ee8-83d6a17dcf04",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {},
+  "enums": {
+    "public.stance": {
+      "name": "stance",
+      "schema": "public",
+      "values": [
+        "for",
+        "neutral",
+        "against"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

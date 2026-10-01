@@ -1,0 +1,1 @@
+CREATE TYPE "public"."stance" AS ENUM('for', 'neutral', 'against');

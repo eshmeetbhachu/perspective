@@ -176,7 +176,7 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 - [x] TypeScript strict mode, ESLint, Prettier
 - [x] Docker Compose running Postgres locally
 - [x] Environment config with validation (the app refuses to start if a variable is missing)
-- [ ] Fastify server with health check, structured logging (Pino), and central error handling
+- [x] Fastify server with health check, structured logging (Pino), and central error handling
 - [ ] Drizzle ORM set up with a migrations workflow
 - [ ] Git repo, commit conventions, README
 - ✅ **Your call:** project name → **Perspective** (D16)

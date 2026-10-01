@@ -4,5 +4,5 @@
     // Node's globals and built-in modules (process, Buffer, node:fs, ...).
     "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src", "drizzle.config.ts"]
 }

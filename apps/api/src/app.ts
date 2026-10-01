@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { loggerOptions } from "./config/logger";
+import { pool } from "./db/client";
 import { healthRoutes } from "./modules/health/routes";
 import { errorHandler, notFoundHandler } from "./plugins/error-handler";
 
@@ -10,6 +11,18 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);
+
+  // If the database drops an idle connection (restart, network blip), the pool
+  // emits 'error'. Unhandled, that event would crash the whole process; here
+  // we just log it, and the pool opens a fresh connection on the next query.
+  pool.on("error", (err) => {
+    app.log.error({ err }, "idle database connection error");
+  });
+
+  // On shutdown, close database connections after in-flight requests finish.
+  app.addHook("onClose", async () => {
+    await pool.end();
+  });
 
   await app.register(healthRoutes);
 
