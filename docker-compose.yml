@@ -1,0 +1,30 @@
+# Local development services. Start with `docker compose up -d`.
+name: perspective
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      # The built-in superuser. Only for us (admin tasks), never for the app.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set it in .env}
+      POSTGRES_DB: perspective
+      # Read by the init script to create the two app roles (Decision D19).
+      MIGRATOR_PASSWORD: ${MIGRATOR_PASSWORD:?set it in .env}
+      APP_PASSWORD: ${APP_PASSWORD:?set it in .env}
+    ports:
+      # 127.0.0.1 = reachable only from this machine, not from your network.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # Database files live in a named volume, so they survive container restarts.
+      - pgdata:/var/lib/postgresql
+      # Scripts in this folder run once, when the database is first created.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d perspective"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
