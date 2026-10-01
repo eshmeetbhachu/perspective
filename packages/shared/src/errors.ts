@@ -1,0 +1,17 @@
+// The API's error contract (Decision D22). The frontend switches on `code`;
+// `message` is for humans and may change wording at any time.
+export type ErrorCode = "BAD_REQUEST" | "NOT_FOUND" | "INTERNAL_ERROR";
+
+// One problem with one input field, e.g. { path: "email", message: "..." }.
+export interface ErrorDetail {
+  path: string;
+  message: string;
+}
+
+export interface ErrorResponse {
+  error: {
+    code: ErrorCode;
+    message: string;
+    details?: ErrorDetail[];
+  };
+}

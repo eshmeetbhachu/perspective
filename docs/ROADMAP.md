@@ -38,6 +38,7 @@ A platform where people understand viewpoints before debating them. Questions ar
 | D19 | Two Postgres roles: `perspective_migrator` (owns schema, runs migrations) and `perspective_app` (row access only: SELECT/INSERT/UPDATE/DELETE) | Least privilege: a compromised server (e.g. SQL injection) can misuse rows but can't DROP, ALTER, or TRUNCATE tables. `ALTER DEFAULT PRIVILEGES` grants the app access to future tables automatically. Cheaper to set up now than to re-own tables later                                 |
 | D20 | **Zod** for all validation (env config, request schemas, shared frontend/backend schemas)                                                      | Readable, clear error messages, the standard for React forms (schemas in `packages/shared` get reused by the frontend), most transferable skill. TypeBox is faster and Fastify-native, but validation cost is microseconds next to DB queries; measure it in Phase 9 instead of assuming |
 | D21 | One `.env` at the repo root, loaded by the API with Node's built-in `--env-file`                                                               | Docker Compose already reads the root `.env`; one file means one place for secrets. Node's built-in loader avoids the `dotenv` dependency                                                                                                                                                |
+| D22 | Error responses use our own shape: `{ error: { code, message, details? } }`, with `code` typed in `packages/shared`                            | `code` is a stable contract the frontend can switch on while messages stay free to change; `details` gives per-field errors for forms. Simpler than RFC 9457 Problem Details for a single-client API, and easy to translate to it later if the API goes public                           |
 
 ---
 
@@ -174,7 +175,7 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 - [x] Monorepo with pnpm workspaces: `apps/web`, `apps/api`, `packages/shared`
 - [x] TypeScript strict mode, ESLint, Prettier
 - [x] Docker Compose running Postgres locally
-- [ ] Environment config with validation (the app refuses to start if a variable is missing)
+- [x] Environment config with validation (the app refuses to start if a variable is missing)
 - [ ] Fastify server with health check, structured logging (Pino), and central error handling
 - [ ] Drizzle ORM set up with a migrations workflow
 - [ ] Git repo, commit conventions, README

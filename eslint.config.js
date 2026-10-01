@@ -22,6 +22,12 @@ export default defineConfig(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      // Fastify plugins and handlers are written as async functions by
+      // convention, even when they have nothing to await yet. Forgotten
+      // awaits are still caught by no-floating-promises.
+      "@typescript-eslint/require-await": "off",
+    },
   },
 
   // Plain .js config files aren't part of any tsconfig, so skip type-aware rules.

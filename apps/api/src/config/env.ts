@@ -9,6 +9,9 @@ const EnvSchema = z.object({
   HOST: z.string().min(1).default("127.0.0.1"),
   // Env vars are always strings; coerce turns "3000" into the number 3000.
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
+  LOG_LEVEL: z
+    .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+    .default("info"),
   // Connects as perspective_app, the row-access-only role (D19).
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
 });
