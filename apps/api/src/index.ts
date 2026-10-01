@@ -1,7 +1,9 @@
 // Placeholder until the Fastify server is added (Phase 0, step 5).
-// Proves the api can import types from @perspective/shared.
-import type { Stance } from "@perspective/shared";
+import { env } from "./config/env";
 
-const example: Stance = "neutral";
-
-console.log(`api placeholder, example stance: ${example}`);
+// DATABASE_URL is deliberately not logged: it contains a password.
+console.log("api config loaded:", {
+  NODE_ENV: env.NODE_ENV,
+  HOST: env.HOST,
+  PORT: env.PORT,
+});
