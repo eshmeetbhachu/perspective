@@ -39,6 +39,7 @@ A platform where people understand viewpoints before debating them. Questions ar
 | D20 | **Zod** for all validation (env config, request schemas, shared frontend/backend schemas)                                                      | Readable, clear error messages, the standard for React forms (schemas in `packages/shared` get reused by the frontend), most transferable skill. TypeBox is faster and Fastify-native, but validation cost is microseconds next to DB queries; measure it in Phase 9 instead of assuming |
 | D21 | One `.env` at the repo root, loaded by the API with Node's built-in `--env-file`                                                               | Docker Compose already reads the root `.env`; one file means one place for secrets. Node's built-in loader avoids the `dotenv` dependency                                                                                                                                                |
 | D22 | Error responses use our own shape: `{ error: { code, message, details? } }`, with `code` typed in `packages/shared`                            | `code` is a stable contract the frontend can switch on while messages stay free to change; `details` gives per-field errors for forms. Simpler than RFC 9457 Problem Details for a single-client API, and easy to translate to it later if the API goes public                           |
+| D23 | Conventional Commits, documented in the README but not enforced by git hooks                                                                   | Solo project that already follows the format; hooks (husky + commitlint) would add two tools for little gain. Revisit in Phase 8 as a CI check if needed                                                                                                                                 |
 
 ---
 
@@ -177,8 +178,8 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 - [x] Docker Compose running Postgres locally
 - [x] Environment config with validation (the app refuses to start if a variable is missing)
 - [x] Fastify server with health check, structured logging (Pino), and central error handling
-- [ ] Drizzle ORM set up with a migrations workflow
-- [ ] Git repo, commit conventions, README
+- [x] Drizzle ORM set up with a migrations workflow
+- [x] Git repo, commit conventions, README
 - ✅ **Your call:** project name → **Perspective** (D16)
 
 ### Phase 1: Authentication
