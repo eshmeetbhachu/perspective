@@ -27,7 +27,18 @@ export function errorHandler(
       .send(errorBody(error.code, error.message, error.details));
   }
 
-  // 2. Client mistakes Fastify detected itself (malformed JSON, body too
+  // 2. Request didn't match its Zod schema: one detail per invalid field.
+  if (error.validation) {
+    const details = error.validation.map((issue) => ({
+      path: issue.instancePath.slice(1).replaceAll("/", "."),
+      message: issue.message ?? "Invalid value",
+    }));
+    return reply
+      .status(400)
+      .send(errorBody("VALIDATION_FAILED", "Some fields are invalid", details));
+  }
+
+  // 3. Client mistakes Fastify detected itself (malformed JSON, body too
   //    large, unsupported content type). Fastify's messages are safe to show.
   const statusCode = error.statusCode ?? 500;
   if (statusCode >= 400 && statusCode < 500) {
@@ -37,7 +48,7 @@ export function errorHandler(
       .send(errorBody("BAD_REQUEST", error.message));
   }
 
-  // 3. Anything else is a bug. Full details go to the log only; the client
+  // 4. Anything else is a bug. Full details go to the log only; the client
   //    gets a generic message, because stack traces and SQL errors reveal
   //    how the system works.
   request.log.error({ err: error }, "unhandled error");

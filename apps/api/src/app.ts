@@ -1,7 +1,19 @@
+import cookie from "@fastify/cookie";
+import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
 import Fastify, { type FastifyInstance } from "fastify";
+import {
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
+import { env } from "./config/env";
 import { loggerOptions } from "./config/logger";
-import { pool } from "./db/client";
+import { AppError } from "./errors";
+import { authRoutes } from "./modules/auth/routes";
 import { healthRoutes } from "./modules/health/routes";
+import { loadSession } from "./plugins/auth";
+import { checkOrigin } from "./plugins/csrf";
 import { errorHandler, notFoundHandler } from "./plugins/error-handler";
 
 // Builds the app without starting it, so tests can call buildApp() and send
@@ -11,20 +23,33 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
 
-  // If the database drops an idle connection (restart, network blip), the pool
-  // emits 'error'. Unhandled, that event would crash the whole process; here
-  // we just log it, and the pool opens a fresh connection on the next query.
-  pool.on("error", (err) => {
-    app.log.error({ err }, "idle database connection error");
+  // Only JSON bodies: a plain HTML form on another site can send text/plain
+  // without the browser asking our permission first.
+  app.removeContentTypeParser("text/plain");
+
+  await app.register(helmet);
+  await app.register(cors, { origin: env.WEB_ORIGIN, credentials: true });
+  await app.register(cookie);
+  await app.register(rateLimit, {
+    global: false,
+    errorResponseBuilder: (_request, context) =>
+      new AppError(
+        429,
+        "RATE_LIMITED",
+        `Too many attempts, try again in ${context.after}`,
+      ),
   });
 
-  // On shutdown, close database connections after in-flight requests finish.
-  app.addHook("onClose", async () => {
-    await pool.end();
-  });
+  app.decorateRequest("user", null);
+  app.decorateRequest("sessionId", null);
+  app.addHook("onRequest", checkOrigin);
+  app.addHook("onRequest", loadSession);
 
   await app.register(healthRoutes);
+  await app.register(authRoutes);
 
   return app;
 }

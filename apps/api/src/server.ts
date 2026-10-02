@@ -1,11 +1,19 @@
 import { buildApp } from "./app";
 import { env } from "./config/env";
+import { pool } from "./db/client";
 
 // If shutdown takes longer than this, a request or connection is stuck:
 // exit anyway rather than hang forever.
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 const app = await buildApp();
+
+// If the database drops an idle connection (restart, network blip), the pool
+// emits 'error'. Unhandled, that event would crash the whole process; here
+// we just log it, and the pool opens a fresh connection on the next query.
+pool.on("error", (err) => {
+  app.log.error({ err }, "idle database connection error");
+});
 
 try {
   await app.listen({ host: env.HOST, port: env.PORT });
@@ -29,6 +37,7 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
 
   try {
     await app.close();
+    await pool.end();
     process.exit(0);
   } catch (err) {
     app.log.error({ err }, "error during shutdown");

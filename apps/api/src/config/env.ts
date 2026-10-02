@@ -14,6 +14,8 @@ const EnvSchema = z.object({
     .default("info"),
   // Connects as perspective_app, the row-access-only role (D19).
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  // The only origin allowed to make state-changing requests (CSRF, CORS).
+  WEB_ORIGIN: z.url().default("http://localhost:5173"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

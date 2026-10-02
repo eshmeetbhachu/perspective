@@ -46,6 +46,9 @@ A platform where people understand viewpoints before debating them. Questions ar
 | D27 | **No automatic account linking by matching email.** A Google identity is attached to an existing account only after the person proves control of that account: either they connect Google while logged in, or a Google sign-in whose email matches an existing account is held as a short-lived, single-use pending link until they log in to that account | Auto-linking on email enables pre-account takeover: an attacker registers your email with their own password first, and when you later sign in with Google, both of you control one account. Google identities are always matched by Google's stable user ID (`sub`), never by email                                                         |
 | D28 | Emails and usernames are unique **ignoring capitals**; usernames are 3–20 characters of letters, digits and `_`                                                                                                                                                                                                                                            | `Sam@Mail.com` and `sam@mail.com` must not become two accounts, and `Sam` / `sam` look like the same person. Enforced by unique indexes on `lower(...)`, so the database guarantees it even if application code has a bug                                                                                                                    |
 | D29 | Commit messages are short plain descriptions (`add users and sessions tables`), no type prefixes or emojis. Supersedes D23                                                                                                                                                                                                                                 | Owner preference: history reads as plain English. Claude may stage and commit completed work, always under the owner's git identity with no AI attribution                                                                                                                                                                                   |
+| D30 | CSRF defense = `SameSite=Lax` session cookie + every non-GET request must carry `Origin` equal to `WEB_ORIGIN` + JSON-only bodies (the `text/plain` parser is removed)                                                                                                                                                                                     | Browsers always attach `Origin` to cross-site writes and scripts can't forge it; `SameSite=Lax` keeps the cookie off cross-site POSTs; requiring JSON forces a CORS preflight that other sites fail. Avoids CSRF tokens the frontend would have to fetch and echo back                                                                       |
+| D31 | Sign-up says when an email or username is already taken (409 `EMAIL_TAKEN` / `USERNAME_TAKEN`); login never reveals which part was wrong                                                                                                                                                                                                                   | Hiding taken emails at sign-up needs an email-only signup flow, which hurts usability. Sign-up is rate limited (5/hour/IP), so mass enumeration is slow. Login stays generic and spends the same hashing time for unknown emails                                                                                                             |
+| D32 | API tests (Vitest + `app.inject`) run against a separate `perspective_test` database from Phase 1 on, not only from Phase 7                                                                                                                                                                                                                                | Auth is security-critical; real-database tests catch constraint, cookie and session bugs that mocks hide. The test DB keeps dev data safe; Phase 7 extends this with E2E tests and seeding                                                                                                                                                   |
 
 ---
 
@@ -163,22 +166,22 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 
 ## Security Checklist (built in from Phase 1, not added at the end)
 
-- [ ] Passwords hashed with **argon2id**
-- [ ] Session cookie: `httpOnly`, `Secure`, `SameSite=Lax`; session token stored hashed; rotated on login
-- [ ] CSRF protection on every state-changing request
-- [ ] Every request body, query, and param validated with a schema (Zod, D20)
-- [ ] Only parameterized queries (the ORM does this; never build SQL with string concatenation)
+- [x] Passwords hashed with **argon2id**
+- [x] Session cookie: `httpOnly`, `Secure`, `SameSite=Lax`; session token stored hashed; rotated on login
+- [x] CSRF protection on every state-changing request
+- [x] Every request body, query, and param validated with a schema (Zod, D20)
+- [x] Only parameterized queries (the ORM does this; never build SQL with string concatenation)
 - [ ] User content rendered as plain text or sanitized Markdown (DOMPurify): blocks XSS
 - [ ] Authorization checked on every write ("does this user own this post?"), not just authentication
 - [ ] Rate limiting on login, register, password reset, posting, voting
-- [ ] Security headers via `@fastify/helmet`; strict CORS (only your frontend's origin)
+- [x] Security headers via `@fastify/helmet`; strict CORS (only your frontend's origin)
 - [ ] Email verification required before posting or voting
 - [ ] Password-reset tokens: random, hashed, single-use, expire in 30 minutes
-- [ ] Generic login errors ("wrong email or password"), so emails can't be enumerated
+- [x] Generic login errors ("wrong email or password"), so emails can't be enumerated
 - [ ] Google sign-in: `state` + PKCE + `nonce` on every login; ID token verified (signature, issuer, audience, expiry); only `email_verified` Google emails accepted; client secret only in env
 - [ ] No account linking by email alone; linking requires proving control of the existing account (D27)
-- [ ] Secrets only in environment variables, never committed; `.env.example` committed instead
-- [ ] Database user with least privileges (no superuser for the app)
+- [x] Secrets only in environment variables, never committed; `.env.example` committed instead
+- [x] Database user with least privileges (no superuser for the app)
 - [ ] Logs never contain passwords, tokens, or full emails
 - [ ] `pnpm audit` + Dependabot in CI
 - [ ] HTTPS everywhere in production; automated database backups, with a tested restore
@@ -203,7 +206,7 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 Order decided in D25.
 
 - [x] `users` + `sessions` tables and migrations (UUIDv7 IDs, case-insensitive email/username)
-- [ ] Register, login, logout, "who am I" endpoints, with argon2id, session cookies, CSRF protection, security headers, CORS, and rate limiting on auth routes
+- [x] Register, login, logout, "who am I" endpoints, with argon2id, session cookies, CSRF protection, security headers, CORS, and rate limiting on auth routes
 - [ ] Frontend: Vite + React, React Router, TanStack Query, sign-up / login pages, protected routes
 - [ ] Sign in with Google (OpenID Connect): `oauth_accounts` table, "pick a username" for new Google users, secure account linking (D27)
 - [ ] Email verification, and forgot/reset password (dev: emails print to console; prod: real provider)

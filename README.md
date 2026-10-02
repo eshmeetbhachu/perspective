@@ -74,7 +74,9 @@ docker compose up -d
 docker compose ps        # wait for "(healthy)"
 ```
 
-On first start, an init script creates two database roles: one that can change
+On first start, an init script creates the `perspective` database plus a
+separate `perspective_test` database for automated tests, and two database
+roles: one that can change
 the schema (used only for migrations) and one with row access only (used by
 the server). See decision D19 in the roadmap.
 
@@ -107,15 +109,16 @@ Both should return `{"status":"ok"}`.
 
 Run from the repository root.
 
-| Command             | What it does                                          |
-| ------------------- | ----------------------------------------------------- |
-| `pnpm dev:api`      | Start the API with auto-restart on file changes       |
-| `pnpm db:generate`  | Create a migration from changes in `apps/api/src/db/` |
-| `pnpm db:migrate`   | Apply pending migrations to the database              |
-| `pnpm typecheck`    | Type-check every package                              |
-| `pnpm lint`         | Lint the whole repository                             |
-| `pnpm format`       | Format all files with Prettier                        |
-| `pnpm format:check` | Report unformatted files without changing them        |
+| Command             | What it does                                              |
+| ------------------- | --------------------------------------------------------- |
+| `pnpm dev:api`      | Start the API with auto-restart on file changes           |
+| `pnpm db:generate`  | Create a migration from changes in `apps/api/src/db/`     |
+| `pnpm db:migrate`   | Apply pending migrations to the database                  |
+| `pnpm test`         | Run the API tests against the `perspective_test` database |
+| `pnpm typecheck`    | Type-check every package                                  |
+| `pnpm lint`         | Lint the whole repository                                 |
+| `pnpm format`       | Format all files with Prettier                            |
+| `pnpm format:check` | Report unformatted files without changing them            |
 
 ## Commit messages
 
