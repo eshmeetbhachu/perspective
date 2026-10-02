@@ -189,3 +189,74 @@ export const questions = pgTable(
     ),
   ],
 );
+
+// A reader's current stance on a question: one per person per question (D5).
+export const userStances = pgTable(
+  "user_stances",
+  {
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    questionId: uuid()
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    stance: stanceEnum().notNull(),
+    updatedAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.questionId] }),
+    index("user_stances_question_idx").on(t.questionId, t.stance),
+  ],
+);
+
+// Every declaration and change, for "changed my mind" insights later (D8).
+export const stanceHistory = pgTable(
+  "stance_history",
+  {
+    id: id(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    questionId: uuid()
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    fromStance: stanceEnum(),
+    toStance: stanceEnum().notNull(),
+    changedAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [index("stance_history_user_question_idx").on(t.userId, t.questionId)],
+);
+
+export const posts = pgTable(
+  "posts",
+  {
+    id: id(),
+    questionId: uuid()
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    // Posts outlive their author's account, like questions.
+    authorId: uuid().references(() => users.id, { onDelete: "set null" }),
+    stance: stanceEnum().notNull(),
+    title: text().notNull(),
+    body: text().notNull(),
+    createdAt: timestamptz().notNull().defaultNow(),
+    editedAt: timestamptz(),
+    deletedAt: timestamptz(),
+  },
+  (t) => [
+    // One column of one question, newest first, live posts only.
+    index("posts_column_idx")
+      .on(t.questionId, t.stance, t.id.desc())
+      .where(sql`${t.deletedAt} is null`),
+    // One live post per person per side of a question.
+    uniqueIndex("posts_author_question_stance_unique")
+      .on(t.authorId, t.questionId, t.stance)
+      .where(sql`${t.deletedAt} is null`),
+    index("posts_author_created_idx").on(t.authorId, t.createdAt),
+    check("posts_title_length", sql`char_length(${t.title}) between 5 and 120`),
+    check(
+      "posts_body_length",
+      sql`char_length(${t.body}) between 30 and 10000`,
+    ),
+  ],
+);

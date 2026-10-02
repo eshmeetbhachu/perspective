@@ -43,6 +43,13 @@
       "when": 1790953738999,
       "tag": "0005_cloudy_brood",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790954826875,
+      "tag": "0006_broad_amazoness",
+      "breakpoints": true
     }
   ]
 }
