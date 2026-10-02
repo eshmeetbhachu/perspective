@@ -9,10 +9,12 @@ import {
 import { useCurrentUser, useLogout } from "./auth";
 import { RequireAuth } from "./components/RequireAuth";
 import { AccountPage } from "./pages/AccountPage";
+import { AskPage } from "./pages/AskPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { GoogleSignupPage } from "./pages/GoogleSignupPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { QuestionPage } from "./pages/QuestionPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SignupPage } from "./pages/SignupPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
@@ -22,6 +24,7 @@ export function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
+        <Route path="q/:slug" element={<QuestionPage />} />
         <Route path="signup" element={<SignupPage />} />
         <Route path="signup/google" element={<GoogleSignupPage />} />
         <Route path="login" element={<LoginPage />} />
@@ -30,6 +33,7 @@ export function App() {
         <Route path="verify-email" element={<VerifyEmailPage />} />
         <Route element={<RequireAuth />}>
           <Route path="account" element={<AccountPage />} />
+          <Route path="ask" element={<AskPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

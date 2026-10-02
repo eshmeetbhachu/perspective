@@ -8,8 +8,8 @@ Built as a learning project focused on system design and scalability. The full
 plan, with every design decision and the reasoning behind it, is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
-> **Status:** Phase 1 (accounts) complete: email/password and Google sign-in,
-> email verification, password reset, and roles.
+> **Status:** Phases 0–2 complete: accounts (email/password and Google), and
+> questions with search and duplicate suggestions.
 
 ## Tech stack
 
