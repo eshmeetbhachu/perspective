@@ -182,7 +182,7 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 - [ ] Email verification required before posting or voting
 - [x] Password-reset tokens: random, hashed, single-use, expire in 30 minutes
 - [x] Generic login errors ("wrong email or password"), so emails can't be enumerated
-- [ ] Google sign-in: `state` + PKCE + `nonce` on every login; ID token verified (signature, issuer, audience, expiry); only `email_verified` Google emails accepted; client secret only in env
+- [x] Google sign-in: `state` + PKCE + `nonce` on every login; ID token verified (signature, issuer, audience, expiry); only `email_verified` Google emails accepted; client secret only in env
 - [x] No account linking by email alone; linking requires proving control of the existing account (D27)
 - [x] Secrets only in environment variables, never committed; `.env.example` committed instead
 - [x] Database user with least privileges (no superuser for the app)
@@ -212,7 +212,7 @@ Order decided in D25.
 - [x] `users` + `sessions` tables and migrations (UUIDv7 IDs, case-insensitive email/username)
 - [x] Register, login, logout, "who am I" endpoints, with argon2id, session cookies, CSRF protection, security headers, CORS, and rate limiting on auth routes
 - [x] Frontend: Vite + React, React Router, TanStack Query, sign-up / login pages, protected routes
-- [ ] Sign in with Google (OpenID Connect): `oauth_accounts` table, "pick a username" for new Google users, secure account linking (D27) (built and tested against a simulated Google; the live round trip needs Google credentials, see README)
+- [x] Sign in with Google (OpenID Connect): `oauth_accounts` table, "pick a username" for new Google users, secure account linking (D27)
 - [x] Email verification, and forgot/reset password (dev: emails print to the API log; the production email provider is set up with deployment in Phase 8)
 - [x] Auth guard plugin; roles (`requireAuth`, `requireRole`, `requireVerifiedEmail`; `pnpm set-role` until the admin UI in Phase 6)
 
