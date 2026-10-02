@@ -52,6 +52,7 @@ A platform where people understand viewpoints before debating them. Questions ar
 | D33 | In development the browser only talks to the Vite dev server, which proxies `/api/*` to the API                                                                                                                                                                                                                                                            | One origin means the session cookie is first-party and no CORS is involved, matching how production will serve the API under the same site. The API still enforces `Origin` (D30) and CORS for when they are split                                                                                                                           |
 | D34 | Google sign-in uses `openid-client` (OpenID Connect) with ID-token signature checks turned on; it is off unless `GOOGLE_CLIENT_ID`/`SECRET` are set. A Google identity that matches no linked account is stored server-side as a 15-minute, single-use pending record (hashed token in an httpOnly cookie)                                                 | A certified library handles state, PKCE, nonce, issuer/audience/expiry checks instead of hand-rolled crypto. The pending record carries a verified Google identity across the extra step (pick a username, or log in to the matching account) without trusting anything the browser sends back                                               |
 | D35 | Email links (verify email, reset password) share one `email_tokens` table: hashed tokens, a new link cancels older ones, and a token is used up by one `DELETE … RETURNING` statement. Links open a page that POSTs the token. Forgot-password always answers 204. A reset verifies the email and logs out every session                                   | The single statement makes links strictly single-use even under simultaneous clicks. POSTing from a page stops email scanners that preview links from using them up. A same-answer forgot form can't reveal who has an account. A reset may follow a compromise, so all old sessions end                                                     |
+| D36 | Authorization is a set of Fastify `preHandler` guards: `requireAuth`, `requireVerifiedEmail`, and `requireRole(minimum)` with ranked roles (user < moderator < admin). Roles are read from the database on every request; there is no role-change endpoint yet (`pnpm set-role` CLI)                                                                       | Guards sit next to each route, so its access rule is visible where it's defined. Ranking avoids listing every role on every route. Reading the role per request means demotions and bans apply immediately, which a role baked into a token (JWT) couldn't do                                                                                |
 
 ---
 
@@ -213,7 +214,7 @@ Order decided in D25.
 - [x] Frontend: Vite + React, React Router, TanStack Query, sign-up / login pages, protected routes
 - [ ] Sign in with Google (OpenID Connect): `oauth_accounts` table, "pick a username" for new Google users, secure account linking (D27) (built and tested against a simulated Google; the live round trip needs Google credentials, see README)
 - [x] Email verification, and forgot/reset password (dev: emails print to the API log; the production email provider is set up with deployment in Phase 8)
-- [ ] Auth guard plugin; roles
+- [x] Auth guard plugin; roles (`requireAuth`, `requireRole`, `requireVerifiedEmail`; `pnpm set-role` until the admin UI in Phase 6)
 
 ### Phase 2: Questions
 
@@ -262,6 +263,7 @@ Order decided in D25.
 - [ ] GitHub Actions CI: lint, type-check, test, audit on every push
 - [ ] Deploy API + managed Postgres + static frontend
 - [ ] Migrations run automatically on deploy
+- [ ] Configure `trustProxy` so rate limits and session IPs see the real client address behind the load balancer
 - [ ] Production email provider for verification and password-reset emails (moved from Phase 1)
 - [ ] Domain, HTTPS, backups, error monitoring
 - 🟡 **Your call:** hosting provider (we'll compare cost vs control when we get here)

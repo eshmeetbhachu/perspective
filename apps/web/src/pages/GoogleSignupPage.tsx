@@ -21,7 +21,11 @@ export function GoogleSignupPage() {
   if (user) return <Navigate to="/account" replace />;
   if (pending.isPending) return <p className="muted">Loading…</p>;
 
-  if (!pending.data || pending.data.accountExists) {
+  if (pending.data?.accountExists) {
+    return <Navigate to="/login?link=google" replace />;
+  }
+
+  if (!pending.data) {
     return (
       <section className="card">
         <h1>Sign-in expired</h1>
@@ -51,7 +55,7 @@ export function GoogleSignupPage() {
       onError: (err) => {
         const { fields, form } = errorsFromApi(err);
         setErrors(fields);
-        setFormError(form);
+        setFormError(form ?? fields.email ?? null);
       },
     });
   }

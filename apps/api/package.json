@@ -7,7 +7,8 @@
     "dev": "tsx watch --env-file=../../.env src/server.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "test": "vitest run"
+    "test": "vitest run",
+    "set-role": "tsx --env-file=../../.env scripts/set-role.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

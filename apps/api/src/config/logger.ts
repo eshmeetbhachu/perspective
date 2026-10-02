@@ -1,5 +1,21 @@
-import type { FastifyServerOptions } from "fastify";
+import type { FastifyRequest, FastifyServerOptions } from "fastify";
 import { env } from "./env";
+
+const SECRET_PARAMS = new Set(["code", "state", "token"]);
+
+// Hides one-time values in logged URLs, e.g. Google's ?code= on the callback.
+export function redactUrl(url: string): string {
+  const [path, query] = url.split("?", 2);
+  if (!query) return url;
+  const params = query
+    .split("&")
+    .map((pair) => {
+      const name = pair.split("=", 1)[0] ?? "";
+      return SECRET_PARAMS.has(name) ? `${name}=REDACTED` : pair;
+    })
+    .join("&");
+  return `${path ?? ""}?${params}`;
+}
 
 export const loggerOptions: FastifyServerOptions["logger"] = {
   level: env.LOG_LEVEL,
@@ -17,6 +33,13 @@ export const loggerOptions: FastifyServerOptions["logger"] = {
       "*.token",
     ],
     censor: "[Redacted]",
+  },
+  serializers: {
+    req: (request: FastifyRequest) => ({
+      method: request.method,
+      url: redactUrl(request.url),
+      remoteAddress: request.ip,
+    }),
   },
 
   // Development: human-readable colored lines. Everywhere else: raw JSON,

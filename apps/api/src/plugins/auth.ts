@@ -1,3 +1,4 @@
+import type { UserRole } from "@perspective/shared";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { AppError } from "../errors";
 import {
@@ -45,4 +46,31 @@ export function requireUser(request: FastifyRequest): AuthUser {
 
 export async function requireAuth(request: FastifyRequest): Promise<void> {
   requireUser(request);
+}
+
+export async function requireVerifiedEmail(
+  request: FastifyRequest,
+): Promise<void> {
+  if (!requireUser(request).emailVerifiedAt) {
+    throw new AppError(
+      403,
+      "EMAIL_NOT_VERIFIED",
+      "Verify your email address first",
+    );
+  }
+}
+
+const ROLE_RANK: Record<UserRole, number> = { user: 0, moderator: 1, admin: 2 };
+
+// Roles are ranked: requireRole("moderator") also lets admins through.
+export function requireRole(minimum: UserRole) {
+  return async (request: FastifyRequest): Promise<void> => {
+    if (ROLE_RANK[requireUser(request).role] < ROLE_RANK[minimum]) {
+      throw new AppError(
+        403,
+        "FORBIDDEN",
+        "You don't have permission to do that",
+      );
+    }
+  };
 }

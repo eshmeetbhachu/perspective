@@ -11,6 +11,7 @@
     "dev:web": "pnpm --filter @perspective/web dev",
     "db:generate": "pnpm --filter @perspective/api db:generate",
     "db:migrate": "pnpm --filter @perspective/api db:migrate",
+    "set-role": "pnpm --filter @perspective/api set-role",
     "typecheck": "tsc -p packages/shared && tsc -p apps/api && tsc -p apps/web",
     "lint": "eslint .",
     "format": "prettier --write .",

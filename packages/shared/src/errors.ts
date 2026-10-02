@@ -5,6 +5,7 @@ export type ErrorCode =
   | "VALIDATION_FAILED"
   | "UNAUTHENTICATED"
   | "FORBIDDEN"
+  | "EMAIL_NOT_VERIFIED"
   | "NOT_FOUND"
   | "EMAIL_TAKEN"
   | "USERNAME_TAKEN"
