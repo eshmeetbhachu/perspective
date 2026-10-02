@@ -8,6 +8,13 @@
       "when": 1790875051777,
       "tag": "0000_clumsy_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790948688509,
+      "tag": "0001_unusual_leper_queen",
+      "breakpoints": true
     }
   ]
 }
