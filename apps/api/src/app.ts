@@ -17,6 +17,7 @@ import { healthRoutes } from "./modules/health/routes";
 import { postRoutes } from "./modules/posts/routes";
 import { questionRoutes } from "./modules/questions/routes";
 import { stanceRoutes } from "./modules/stances/routes";
+import { voteRoutes } from "./modules/votes/routes";
 import { loadSession } from "./plugins/auth";
 import { checkOrigin } from "./plugins/csrf";
 import { errorHandler, notFoundHandler } from "./plugins/error-handler";
@@ -60,6 +61,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(questionRoutes);
   await app.register(stanceRoutes);
   await app.register(postRoutes);
+  await app.register(voteRoutes);
 
   return app;
 }

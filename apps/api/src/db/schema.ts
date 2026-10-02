@@ -4,6 +4,7 @@ import {
   check,
   customType,
   index,
+  integer,
   inet,
   pgEnum,
   pgTable,
@@ -239,6 +240,11 @@ export const posts = pgTable(
     stance: stanceEnum().notNull(),
     title: text().notNull(),
     body: text().notNull(),
+    // Precomputed on every vote, in the same transaction, so listings never
+    // recount votes (Phase 4).
+    helpfulScore: integer().notNull().default(0),
+    helpfulCount: integer().notNull().default(0),
+    crossSideCount: integer().notNull().default(0),
     createdAt: timestamptz().notNull().defaultNow(),
     editedAt: timestamptz(),
     deletedAt: timestamptz(),
@@ -252,11 +258,36 @@ export const posts = pgTable(
     uniqueIndex("posts_author_question_stance_unique")
       .on(t.authorId, t.questionId, t.stance)
       .where(sql`${t.deletedAt} is null`),
+    // "Top" sort within one column.
+    index("posts_column_top_idx")
+      .on(t.questionId, t.stance, t.helpfulScore.desc(), t.id.desc())
+      .where(sql`${t.deletedAt} is null`),
     index("posts_author_created_idx").on(t.authorId, t.createdAt),
     check("posts_title_length", sql`char_length(${t.title}) between 5 and 120`),
     check(
       "posts_body_length",
       sql`char_length(${t.body}) between 30 and 10000`,
     ),
+  ],
+);
+
+// One "this helped me understand" per person per post. The voter's stance and
+// the weight it earned are frozen at vote time (D7, D44).
+export const postVotes = pgTable(
+  "post_votes",
+  {
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    postId: uuid()
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    voterStance: stanceEnum().notNull(),
+    weight: integer().notNull(),
+    createdAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.postId] }),
+    index("post_votes_post_idx").on(t.postId),
   ],
 );

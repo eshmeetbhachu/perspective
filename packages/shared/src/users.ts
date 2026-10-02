@@ -6,6 +6,9 @@ export type UserRole = (typeof USER_ROLES)[number];
 
 // Username rules (D28): 3-20 letters, digits or underscores.
 // The database enforces the same pattern, and the API validates it with Zod.
+// New accounts can vote once they are this old (D45).
+export const VOTING_ACCOUNT_AGE_HOURS = 24;
+
 export const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,20}$/;
 
 export const usernameSchema = z
@@ -49,6 +52,7 @@ export const publicUserSchema = z.object({
   role: z.enum(USER_ROLES),
   emailVerified: z.boolean(),
   googleConnected: z.boolean(),
+  createdAt: z.string(),
 });
 export type PublicUser = z.infer<typeof publicUserSchema>;
 

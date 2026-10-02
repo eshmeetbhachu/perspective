@@ -134,5 +134,6 @@ export function toPublicUser(user: AuthUser): PublicUser {
     role: user.role,
     emailVerified: user.emailVerifiedAt !== null,
     googleConnected: user.googleConnected,
+    createdAt: user.createdAt.toISOString(),
   };
 }

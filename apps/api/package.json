@@ -8,7 +8,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "test": "vitest run",
-    "set-role": "tsx --env-file=../../.env scripts/set-role.ts"
+    "set-role": "tsx --env-file=../../.env scripts/set-role.ts",
+    "recompute-scores": "tsx --env-file=../../.env scripts/recompute-scores.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

@@ -1,77 +1,29 @@
 import {
   createPostSchema,
-  type Post,
   postListQuerySchema,
   postListResponseSchema,
   postResponseSchema,
   updatePostSchema,
 } from "@perspective/shared";
-import { and, count, desc, eq, gt, isNull, lt, sql } from "drizzle-orm";
+import { and, count, eq, gt, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { db } from "../../db/client";
 import { uniqueViolation } from "../../db/errors";
-import { posts, questions, users } from "../../db/schema";
+import { posts } from "../../db/schema";
 import { AppError } from "../../errors";
 import { requireUser, requireVerifiedEmail } from "../../plugins/auth";
 import { findPublishedQuestionId } from "../questions/find";
 import { findStance } from "../stances/routes";
+import { findPost, live, selectPosts, toPost } from "./queries";
+import { rankPosts } from "./ranking";
 
 const DAILY_LIMIT = 10;
-
-const columns = {
-  id: posts.id,
-  questionId: posts.questionId,
-  stance: posts.stance,
-  title: posts.title,
-  body: posts.body,
-  authorId: posts.authorId,
-  createdAt: posts.createdAt,
-  editedAt: posts.editedAt,
-  authorUsername: users.username,
-};
-
-type Row = {
-  authorId: string | null;
-  authorUsername: string | null;
-  createdAt: Date;
-  editedAt: Date | null;
-} & Omit<Post, "author" | "createdAt" | "editedAt">;
-
-function toPost(row: Row): Post {
-  return {
-    id: row.id,
-    questionId: row.questionId,
-    stance: row.stance,
-    title: row.title,
-    body: row.body,
-    author: row.authorUsername ? { username: row.authorUsername } : null,
-    createdAt: row.createdAt.toISOString(),
-    editedAt: row.editedAt?.toISOString() ?? null,
-  };
-}
-
-function selectPosts() {
-  return db
-    .select(columns)
-    .from(posts)
-    .innerJoin(questions, eq(questions.id, posts.questionId))
-    .leftJoin(users, eq(users.id, posts.authorId));
-}
-
-// Not deleted, and on a question that is still published.
-const live = and(isNull(posts.deletedAt), eq(questions.status, "published"));
-
-async function findPost(postId: string) {
-  const [row] = await selectPosts().where(and(live, eq(posts.id, postId)));
-  if (!row) throw new AppError(404, "NOT_FOUND", "Post not found");
-  return row;
-}
 
 // Authorization, not just authentication: being logged in isn't enough to
 // change a post, it has to be yours.
 async function findOwnPost(postId: string, userId: string) {
-  const row = await findPost(postId);
+  const row = await findPost(postId, userId);
   if (row.authorId !== userId) {
     throw new AppError(403, "FORBIDDEN", "You can only change your own posts");
   }
@@ -82,7 +34,7 @@ const slugParams = z.object({ slug: z.string().min(1).max(200) });
 const idParams = z.object({ id: z.uuid() });
 
 export const postRoutes: FastifyPluginAsyncZod = async (app) => {
-  // One column of a question, newest first, paged by id (D38).
+  // One column of a question, sorted by Top, Hot or New.
   app.get(
     "/questions/:slug/posts",
     {
@@ -94,24 +46,27 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const questionId = await findPublishedQuestionId(request.params.slug);
-      const { stance, cursor, limit } = request.query;
+      const { stance, sort, cursor, limit } = request.query;
+      const ranking = rankPosts(sort, cursor);
 
-      const rows = await selectPosts()
+      const rows = await selectPosts(request.user?.id ?? null, ranking.rank)
         .where(
           and(
             live,
             eq(posts.questionId, questionId),
             eq(posts.stance, stance),
-            cursor ? lt(posts.id, cursor) : undefined,
+            ranking.after,
           ),
         )
-        .orderBy(desc(posts.id))
+        .orderBy(...ranking.orderBy)
         .limit(limit + 1);
 
       const page = rows.slice(0, limit);
+      const last = page.at(-1);
       return {
         posts: page.map(toPost),
-        nextCursor: rows.length > limit ? (page.at(-1)?.id ?? null) : null,
+        nextCursor:
+          rows.length > limit && last ? ranking.nextCursor(last) : null,
       };
     },
   );
@@ -181,14 +136,18 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
         throw err;
       }
 
-      return reply.status(201).send({ post: toPost(await findPost(postId)) });
+      return reply
+        .status(201)
+        .send({ post: toPost(await findPost(postId, user.id)) });
     },
   );
 
   app.get(
     "/posts/:id",
     { schema: { params: idParams, response: { 200: postResponseSchema } } },
-    async (request) => ({ post: toPost(await findPost(request.params.id)) }),
+    async (request) => ({
+      post: toPost(await findPost(request.params.id, request.user?.id ?? null)),
+    }),
   );
 
   app.patch(
@@ -208,7 +167,7 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
         .update(posts)
         .set({ ...request.body, editedAt: new Date() })
         .where(eq(posts.id, request.params.id));
-      return { post: toPost(await findPost(request.params.id)) };
+      return { post: toPost(await findPost(request.params.id, user.id)) };
     },
   );
 

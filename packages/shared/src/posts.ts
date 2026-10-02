@@ -35,6 +35,19 @@ export type CreatePostInput = z.infer<typeof createPostSchema>;
 export const updatePostSchema = createPostSchema;
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 
+export const voteSchema = z.object({
+  helpfulScore: z.number().int(),
+  helpfulCount: z.number().int(),
+  crossSideCount: z.number().int(),
+  // Whether the person asking has marked this post helpful.
+  votedByMe: z.boolean(),
+});
+export type VoteResponse = z.infer<typeof voteSchema>;
+
+// Posts helpful to at least this many people from another side get the
+// "valued across sides" badge.
+export const CROSS_SIDE_BADGE_MIN = 3;
+
 export const postSchema = z.object({
   id: z.uuid(),
   questionId: z.uuid(),
@@ -44,6 +57,7 @@ export const postSchema = z.object({
   author: z.object({ username: z.string() }).nullable(),
   createdAt: z.string(),
   editedAt: z.string().nullable(),
+  ...voteSchema.shape,
 });
 export type Post = z.infer<typeof postSchema>;
 
@@ -52,12 +66,17 @@ export type PostResponse = z.infer<typeof postResponseSchema>;
 
 export const postListResponseSchema = z.object({
   posts: z.array(postSchema),
-  nextCursor: z.uuid().nullable(),
+  nextCursor: z.string().nullable(),
 });
 export type PostListResponse = z.infer<typeof postListResponseSchema>;
 
+export const POST_SORTS = ["top", "hot", "new"] as const;
+export type PostSort = (typeof POST_SORTS)[number];
+
 export const postListQuerySchema = z.object({
   stance: stanceSchema,
-  cursor: z.uuid().optional(),
+  sort: z.enum(POST_SORTS).default("top"),
+  // Opaque: the client passes back whatever nextCursor it was given.
+  cursor: z.string().max(300).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(10),
 });
