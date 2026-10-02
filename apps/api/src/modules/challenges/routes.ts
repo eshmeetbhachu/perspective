@@ -19,6 +19,7 @@ import {
 } from "../../db/schema";
 import { AppError } from "../../errors";
 import { requireUser, requireVerifiedEmail } from "../../plugins/auth";
+import { flagIfSuspicious, rejectDuplicate } from "../moderation/spam";
 import { notify } from "../notifications/notify";
 import { findPost, toPost } from "../posts/queries";
 
@@ -41,6 +42,7 @@ function selectChallenges() {
         select count(*) from ${comments}
         where ${comments.challengeId} = ${challenges.id}
           and ${comments.deletedAt} is null
+          and ${comments.removedAt} is null
       )::int`,
     })
     .from(challenges)
@@ -133,6 +135,17 @@ export const challengeRoutes: FastifyPluginAsyncZod = async (app) => {
             .values({ ...request.body, postId: post.id, createdBy: user.id })
             .returning({ id: challenges.id });
           if (!created) throw new Error("Insert returned no challenge");
+          await rejectDuplicate(tx, "challenge", {
+            id: created.id,
+            authorId: user.id,
+            body: request.body.body,
+          });
+          await flagIfSuspicious(tx, {
+            type: "challenge",
+            id: created.id,
+            body: request.body.body,
+            author: user,
+          });
           await notify(tx, {
             userId: post.authorId,
             actorId: user.id,

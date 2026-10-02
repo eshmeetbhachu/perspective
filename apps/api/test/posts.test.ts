@@ -65,8 +65,12 @@ async function skipCooldown(userId: string) {
     .where(eq(userStances.userId, userId));
 }
 
-function writePost(session: string, title = "Everyone gets a say") {
-  return post(app, `/questions/${SLUG}/posts`, { title, body: BODY }, session);
+function writePost(
+  session: string,
+  title = "Everyone gets a say",
+  body = BODY,
+) {
+  return post(app, `/questions/${SLUG}/posts`, { title, body }, session);
 }
 
 async function column(stance: Stance, query = "") {
@@ -184,7 +188,12 @@ describe("writing posts", () => {
     // Changing sides opens the other column; the old post stays where it was.
     await skipCooldown(userId);
     await setStance(session, "neutral");
-    expect((await writePost(session, "A neutral take")).statusCode).toBe(201);
+    const neutralTake = await writePost(
+      session,
+      "A neutral take",
+      "Both sides have a point; turnout matters, but so does free choice.",
+    );
+    expect(neutralTake.statusCode).toBe(201);
     expect((await column("for")).posts).toHaveLength(1);
     expect((await column("neutral")).posts).toHaveLength(1);
   });

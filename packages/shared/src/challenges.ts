@@ -69,6 +69,8 @@ export const commentSchema = z.object({
   depth: z.number().int(),
   createdAt: z.string(),
   deleted: z.boolean(),
+  // Hidden by a moderator; shown as a placeholder like deleted comments.
+  removed: z.boolean(),
   // True at the page's depth limit when there are replies below.
   hasMoreReplies: z.boolean(),
 });

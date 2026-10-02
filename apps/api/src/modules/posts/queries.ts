@@ -78,9 +78,11 @@ export function selectPosts(
     );
 }
 
-// Not deleted, and on a question that is still published.
+// Not deleted by its author, not removed by a moderator, and on a question
+// that is still published.
 export const live = and(
   isNull(posts.deletedAt),
+  isNull(posts.removedAt),
   eq(questions.status, "published"),
 );
 

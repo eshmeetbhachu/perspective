@@ -14,6 +14,7 @@ import { db } from "../../db/client";
 import { comments } from "../../db/schema";
 import { AppError } from "../../errors";
 import { requireUser, requireVerifiedEmail } from "../../plugins/auth";
+import { flagIfSuspicious, rejectDuplicate } from "../moderation/spam";
 import { notify } from "../notifications/notify";
 import { findChallenge } from "./routes";
 
@@ -28,20 +29,24 @@ interface ThreadRow extends Record<string, unknown> {
   depth: number;
   created_at: Date;
   deleted_at: Date | null;
+  removed_at: Date | null;
   username: string | null;
   has_more: boolean;
 }
 
 function toComment(row: ThreadRow): Comment {
   const deleted = row.deleted_at !== null;
+  const removed = row.removed_at !== null;
+  const hidden = deleted || removed;
   return {
     id: row.id,
     parentId: row.parent_id,
-    body: deleted ? "" : row.body,
-    author: deleted || !row.username ? null : { username: row.username },
+    body: hidden ? "" : row.body,
+    author: hidden || !row.username ? null : { username: row.username },
     depth: row.depth,
     createdAt: new Date(row.created_at).toISOString(),
     deleted,
+    removed,
     hasMoreReplies: row.has_more,
   };
 }
@@ -65,7 +70,7 @@ async function loadThread(challengeId: string, rootId?: string) {
       where t.level < ${THREAD_PAGE_DEPTH}
     )
     select t.id, t.parent_id, t.body, t.depth, t.created_at, t.deleted_at,
-           u.username,
+           t.removed_at, u.username,
            (t.level = ${THREAD_PAGE_DEPTH} and exists (
              select 1 from comments r where r.parent_id = t.id
            )) as has_more
@@ -141,6 +146,7 @@ export const threadRoutes: FastifyPluginAsyncZod = async (app) => {
               eq(comments.id, parentId),
               eq(comments.challengeId, challenge.id),
               isNull(comments.deletedAt),
+              isNull(comments.removedAt),
             ),
           );
         if (!parent) {
@@ -167,6 +173,17 @@ export const threadRoutes: FastifyPluginAsyncZod = async (app) => {
           })
           .returning();
         if (!row) throw new Error("Insert returned no comment");
+        await rejectDuplicate(tx, "comment", {
+          id: row.id,
+          authorId: user.id,
+          body,
+        });
+        await flagIfSuspicious(tx, {
+          type: "comment",
+          id: row.id,
+          body,
+          author: user,
+        });
 
         // A reply notifies the parent's author; a top-level comment notifies
         // the person who started the challenge.
@@ -189,6 +206,7 @@ export const threadRoutes: FastifyPluginAsyncZod = async (app) => {
           depth: created.depth,
           createdAt: created.createdAt.toISOString(),
           deleted: false,
+          removed: false,
           hasMoreReplies: false,
         },
       });

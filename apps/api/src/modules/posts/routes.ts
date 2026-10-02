@@ -13,6 +13,7 @@ import { uniqueViolation } from "../../db/errors";
 import { posts } from "../../db/schema";
 import { AppError } from "../../errors";
 import { requireUser, requireVerifiedEmail } from "../../plugins/auth";
+import { flagIfSuspicious, rejectDuplicate } from "../moderation/spam";
 import { findPublishedQuestionId } from "../questions/find";
 import { findStance } from "../stances/routes";
 import { findPost, live, selectPosts, toPost } from "./queries";
@@ -114,17 +115,30 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
 
       let postId: string;
       try {
-        const [created] = await db
-          .insert(posts)
-          .values({
-            ...request.body,
-            questionId,
+        postId = await db.transaction(async (tx) => {
+          const [created] = await tx
+            .insert(posts)
+            .values({
+              ...request.body,
+              questionId,
+              authorId: user.id,
+              stance: stance.stance,
+            })
+            .returning({ id: posts.id });
+          if (!created) throw new Error("Insert returned no post");
+          await rejectDuplicate(tx, "post", {
+            id: created.id,
             authorId: user.id,
-            stance: stance.stance,
-          })
-          .returning({ id: posts.id });
-        if (!created) throw new Error("Insert returned no post");
-        postId = created.id;
+            body: request.body.body,
+          });
+          await flagIfSuspicious(tx, {
+            type: "post",
+            id: created.id,
+            body: request.body.body,
+            author: user,
+          });
+          return created.id;
+        });
       } catch (err) {
         if (uniqueViolation(err) === "posts_author_question_stance_unique") {
           throw new AppError(

@@ -249,6 +249,8 @@ export const posts = pgTable(
     createdAt: timestamptz().notNull().defaultNow(),
     editedAt: timestamptz(),
     deletedAt: timestamptz(),
+    // Set by a moderator; unlike deletedAt it can be undone (Phase 6).
+    removedAt: timestamptz(),
   },
   (t) => [
     // One column of one question, newest first, live posts only.
@@ -346,6 +348,7 @@ export const comments = pgTable(
     depth: integer().notNull(),
     createdAt: timestamptz().notNull().defaultNow(),
     deletedAt: timestamptz(),
+    removedAt: timestamptz(),
   },
   (t) => [
     index("comments_challenge_parent_idx").on(t.challengeId, t.parentId),
@@ -386,4 +389,84 @@ export const notifications = pgTable(
       .on(t.userId)
       .where(sql`${t.readAt} is null`),
   ],
+);
+
+export const reportTargetEnum = pgEnum("report_target", [
+  "question",
+  "post",
+  "challenge",
+  "comment",
+]);
+
+export const reportReasonEnum = pgEnum("report_reason", [
+  "spam",
+  "harassment",
+  "hate",
+  "misleading",
+  "off_topic",
+  "other",
+  // Raised by the automated checks rather than a person.
+  "automated",
+]);
+
+export const reportStatusEnum = pgEnum("report_status", [
+  "open",
+  "resolved",
+  "dismissed",
+]);
+
+// Points at content by (type, id) instead of a foreign key, because one table
+// covers four kinds of content.
+export const reports = pgTable(
+  "reports",
+  {
+    id: id(),
+    // Null for reports raised by the automated checks.
+    reporterId: uuid().references(() => users.id, { onDelete: "cascade" }),
+    targetType: reportTargetEnum().notNull(),
+    targetId: uuid().notNull(),
+    reason: reportReasonEnum().notNull(),
+    details: text().notNull().default(""),
+    status: reportStatusEnum().notNull().default("open"),
+    resolvedBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    resolvedAt: timestamptz(),
+    createdAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [
+    // One report per person per item.
+    uniqueIndex("reports_reporter_target_unique").on(
+      t.reporterId,
+      t.targetType,
+      t.targetId,
+    ),
+    index("reports_open_idx")
+      .on(t.targetType, t.targetId)
+      .where(sql`${t.status} = 'open'`),
+    index("reports_reporter_created_idx").on(t.reporterId, t.createdAt),
+    check("reports_details_length", sql`char_length(${t.details}) <= 1000`),
+  ],
+);
+
+export const auditActionEnum = pgEnum("audit_action", [
+  "remove",
+  "restore",
+  "dismiss_reports",
+  "ban_user",
+  "unban_user",
+]);
+
+// Every moderator action, append-only: the app's database role may insert
+// and read rows here but never change or delete them (see migration).
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: id(),
+    actorId: uuid().references(() => users.id, { onDelete: "set null" }),
+    action: auditActionEnum().notNull(),
+    targetType: text().notNull(),
+    targetId: uuid().notNull(),
+    reason: text().notNull().default(""),
+    createdAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [index("audit_log_target_idx").on(t.targetType, t.targetId)],
 );

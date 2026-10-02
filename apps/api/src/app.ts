@@ -16,6 +16,7 @@ import { authRoutes } from "./modules/auth/routes";
 import { challengeRoutes } from "./modules/challenges/routes";
 import { threadRoutes } from "./modules/challenges/thread";
 import { healthRoutes } from "./modules/health/routes";
+import { moderationRoutes } from "./modules/moderation/routes";
 import { notificationRoutes } from "./modules/notifications/routes";
 import { postRoutes } from "./modules/posts/routes";
 import { questionRoutes } from "./modules/questions/routes";
@@ -68,6 +69,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(challengeRoutes);
   await app.register(threadRoutes);
   await app.register(notificationRoutes);
+  await app.register(moderationRoutes);
 
   return app;
 }

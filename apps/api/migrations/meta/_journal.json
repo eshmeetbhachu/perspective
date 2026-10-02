@@ -64,6 +64,13 @@
       "when": 1790959321784,
       "tag": "0008_flaky_mentallo",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790960554381,
+      "tag": "0009_fantastic_firebrand",
+      "breakpoints": true
     }
   ]
 }
