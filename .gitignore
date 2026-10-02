@@ -17,3 +17,7 @@ coverage/
 # Editor / OS clutter
 .DS_Store
 Thumbs.db
+
+# Playwright output
+e2e/test-results/
+e2e/playwright-report/

@@ -10,7 +10,8 @@ export default defineConfig({
     // API, so cookies stay first-party and no cross-origin requests happen.
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:3000",
+        // The end-to-end tests point this at their own API server.
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:3000",
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },

@@ -38,6 +38,18 @@ export default defineConfig(
     extends: [reactHooks.configs.flat.recommended],
   },
 
+  // The web app's Vite/Vitest configs run in Node and have their own tsconfig.
+  {
+    files: ["apps/web/*.config.ts"],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: "./apps/web/tsconfig.node.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+
   // Plain .js config files aren't part of any tsconfig, so skip type-aware rules.
   {
     files: ["**/*.js"],

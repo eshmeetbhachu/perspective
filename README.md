@@ -8,9 +8,9 @@ Built as a learning project focused on system design and scalability. The full
 plan, with every design decision and the reasoning behind it, is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
-> **Status:** Phases 0–6 complete: accounts, questions, stances and posts,
-> cross-side helpful votes, challenges with threaded discussions, and
-> moderation (reports, review queue, bans, audit log, spam checks).
+> **Status:** Phases 0–7 complete: the full product (accounts, questions,
+> stances and posts, cross-side votes, challenges, moderation) with unit,
+> integration and end-to-end tests, and a seed script.
 
 ## Tech stack
 
@@ -138,6 +138,31 @@ Google sign-in stays hidden until the API has a Google OAuth client:
    `GOOGLE_CLIENT_SECRET`, then restart the API.
 
 The client secret is a password: keep it only in `.env`.
+
+## Testing
+
+```sh
+pnpm test            # unit + API integration tests (uses perspective_test)
+pnpm test:coverage   # the same, with a coverage report for the API
+pnpm test:e2e        # Playwright end-to-end tests in a real browser
+```
+
+The end-to-end tests start their own API (port 3100) and web server (port 5174) against the `perspective_test` database, so they can run next to
+`pnpm dev`. Install the browser once with
+`pnpm --filter @perspective/e2e exec playwright install chromium`.
+Run `pnpm test` and `pnpm test:e2e` one after the other, not at the same time:
+they share the test database.
+
+## Sample data
+
+```sh
+pnpm seed                               # 50 users, 30 questions with posts, votes and debates
+pnpm seed --users 500 --questions 200   # bigger
+pnpm seed --clear                       # remove everything the seed created
+```
+
+Seeded accounts use emails ending in `@seed.example` and the password
+`seed-password-123`. Seeding never touches other accounts.
 
 ## Scripts
 

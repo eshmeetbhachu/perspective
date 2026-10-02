@@ -14,13 +14,14 @@
     "set-role": "pnpm --filter @perspective/api set-role",
     "recompute-scores": "pnpm --filter @perspective/api recompute-scores",
     "seed": "pnpm --filter @perspective/api seed",
-    "typecheck": "tsc -p packages/shared && tsc -p apps/api && tsc -p apps/web",
+    "typecheck": "tsc -p packages/shared && tsc -p apps/api && tsc -p apps/web && tsc -p apps/web/tsconfig.node.json && tsc -p e2e",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r test",
     "test:coverage": "pnpm --filter @perspective/api test:coverage",
-    "build": "pnpm --filter @perspective/web build"
+    "build": "pnpm --filter @perspective/web build",
+    "test:e2e": "pnpm --filter @perspective/e2e test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
