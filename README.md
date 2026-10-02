@@ -117,32 +117,15 @@ Run from the repository root.
 | `pnpm format`       | Format all files with Prettier                        |
 | `pnpm format:check` | Report unformatted files without changing them        |
 
-## Commit conventions
+## Commit messages
 
-Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<optional scope>): <short summary in the imperative>
-```
-
-| Type       | Use it for                                                |
-| ---------- | --------------------------------------------------------- |
-| `feat`     | A new feature or behavior                                 |
-| `fix`      | A bug fix                                                 |
-| `refactor` | A code change that neither adds a feature nor fixes a bug |
-| `docs`     | Documentation only                                        |
-| `test`     | Adding or changing tests                                  |
-| `chore`    | Tooling, config, dependencies                             |
-
-Scopes name the part of the monorepo: `api`, `web`, `shared`, `db`.
-
-Examples:
+Short, plain descriptions of what the commit does, in the imperative:
 
 ```
-feat(api): add register and login endpoints
-fix(web): keep the stance column sorted after voting
-chore: bump drizzle-kit
+add users and sessions tables
+validate signup input on the server
+fix session expiry check
 ```
 
-Rules of thumb: one logical change per commit, and the summary says _what_ the
-commit does ("add", "fix", "remove"), not what you did ("added", "fixing").
+No type prefixes (`feat:`, `fix:` ...) and no emojis. One logical change per
+commit. Earlier history used Conventional Commits; see D29 in the roadmap.

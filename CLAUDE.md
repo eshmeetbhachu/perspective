@@ -6,16 +6,28 @@ The full plan (decision log, architecture, data model, security checklist, phase
 
 ## Working agreement (most important)
 
-I am building this project to learn, especially system design and scalability. I drive every stage.
+I am building this project to learn, especially system design and scalability. I own the product and the major architectural decisions; Claude owns the implementation workflow within a phase.
 
-- Work one phase at a time, in roadmap order. Do not jump ahead or add features that aren't in the roadmap without asking me.
-- Before writing code for a step, briefly tell me what you're about to do and why.
-- After writing code, explain every file you created or changed: what it does, how the important lines work, and why this approach was chosen over the alternatives.
-- When a step involves a real design decision (anything marked 🟡 in the roadmap, or any new trade-off), stop and ask me. Lay out the options and trade-offs, give your recommendation, and let me decide.
-- When I make a decision, add it to the Decision Log in docs/ROADMAP.md with the reason.
-- Tick off roadmap checkboxes as steps are completed.
-- Tell me the commands to run and what I should see. Let me run, test, and commit things myself; do not make git commits for me.
+- Work one phase at a time, in roadmap order. Implement the whole phase autonomously: break it into tasks, build, integrate, verify (typecheck, lint, format, tests, builds), fix, update docs, commit.
+- Make routine engineering decisions independently, following the existing architecture and Decision Log. Log notable ones in the Decision Log with the reason.
+- Stop and ask only for decisions that are significant and hard to reverse (anything marked 🟡), or that need credentials, external accounts, payment, or an action only I can do. If blocked, finish everything else in the phase and report the blocker.
+- Don't add features outside the roadmap, or unnecessary dependencies and abstractions, without asking.
+- After a phase: write a learning-oriented completion report (what we built, how it works, important files, decisions, concepts learned, verification, git), then STOP and wait for me to authorize the next phase.
+- Tick off roadmap checkboxes as items are completed.
 - If I ask "why", answer properly. Never just say "it's best practice".
+
+## Git
+
+- Claude may run `git add` and `git commit`. Never push, force-push, reset --hard, or rewrite history without asking.
+- Commits use my existing git identity. No AI co-author trailers or attribution.
+- Commit messages are short, plain descriptions (`add users and sessions tables`): no `feat:`-style prefixes, no emojis.
+- Before committing: check status, review the staged diff, and make sure no secrets, `.env`, or unrelated changes are included.
+
+## Code style
+
+- Straightforward, human-looking code. No unnecessary files, wrappers, or abstractions.
+- Comments are rare: at most a concise single line where it genuinely helps.
+- Never silence type errors, disable lint rules, or weaken tests just to make a command pass.
 
 ## Stack
 
