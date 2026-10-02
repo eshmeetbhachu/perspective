@@ -1,10 +1,10 @@
-import { createHash, randomBytes } from "node:crypto";
 import type { PublicUser } from "@perspective/shared";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { env } from "../../config/env";
 import { db } from "../../db/client";
-import { sessions, users } from "../../db/schema";
+import { oauthAccounts, sessions, users } from "../../db/schema";
+import { hashToken, newToken } from "./tokens";
 
 export const SESSION_COOKIE = "session";
 
@@ -12,7 +12,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SESSION_LIFETIME_MS = 30 * DAY_MS;
 const RENEW_WITHIN_MS = 15 * DAY_MS;
 
-export type AuthUser = Omit<typeof users.$inferSelect, "passwordHash">;
+export type AuthUser = Omit<typeof users.$inferSelect, "passwordHash"> & {
+  googleConnected: boolean;
+};
 
 // Every user column except the password hash.
 export const authUserColumns = {
@@ -23,17 +25,16 @@ export const authUserColumns = {
   emailVerifiedAt: users.emailVerifiedAt,
   bannedAt: users.bannedAt,
   createdAt: users.createdAt,
+  googleConnected: sql<boolean>`exists (
+    select 1 from ${oauthAccounts} where ${oauthAccounts.userId} = ${users.id}
+  )`,
 };
-
-function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
 
 export async function createSession(
   userId: string,
   request: FastifyRequest,
 ): Promise<{ token: string; expiresAt: Date }> {
-  const token = randomBytes(32).toString("base64url");
+  const token = newToken();
   const expiresAt = new Date(Date.now() + SESSION_LIFETIME_MS);
 
   await db.insert(sessions).values({
@@ -106,13 +107,19 @@ export function setSessionCookie(
   token: string,
   expiresAt: Date,
 ): void {
-  reply.setCookie(SESSION_COOKIE, token, {
+  reply.setCookie(SESSION_COOKIE, token, cookieOptions(expiresAt));
+}
+
+// httpOnly: invisible to page JavaScript. sameSite lax: not sent on
+// cross-site POSTs. secure: HTTPS only (plain HTTP allowed in development).
+export function cookieOptions(expires: Date) {
+  return {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
-    expires: expiresAt,
-  });
+    expires,
+  };
 }
 
 export function clearSessionCookie(reply: FastifyReply): void {
@@ -126,5 +133,6 @@ export function toPublicUser(user: AuthUser): PublicUser {
     email: user.email,
     role: user.role,
     emailVerified: user.emailVerifiedAt !== null,
+    googleConnected: user.googleConnected,
   };
 }

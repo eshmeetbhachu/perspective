@@ -9,6 +9,7 @@ import {
 import { useCurrentUser, useLogout } from "./auth";
 import { RequireAuth } from "./components/RequireAuth";
 import { AccountPage } from "./pages/AccountPage";
+import { GoogleSignupPage } from "./pages/GoogleSignupPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
@@ -19,6 +20,7 @@ export function App() {
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="signup" element={<SignupPage />} />
+        <Route path="signup/google" element={<GoogleSignupPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route element={<RequireAuth />}>
           <Route path="account" element={<AccountPage />} />

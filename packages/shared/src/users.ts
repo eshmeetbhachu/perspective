@@ -48,8 +48,26 @@ export const publicUserSchema = z.object({
   email: z.string(),
   role: z.enum(USER_ROLES),
   emailVerified: z.boolean(),
+  googleConnected: z.boolean(),
 });
 export type PublicUser = z.infer<typeof publicUserSchema>;
 
 export const userResponseSchema = z.object({ user: publicUserSchema });
 export type UserResponse = z.infer<typeof userResponseSchema>;
+
+export const providersResponseSchema = z.object({ google: z.boolean() });
+export type ProvidersResponse = z.infer<typeof providersResponseSchema>;
+
+// A Google sign-in waiting for its next step (D27).
+export const googlePendingResponseSchema = z.object({
+  email: z.string(),
+  accountExists: z.boolean(),
+});
+export type GooglePendingResponse = z.infer<typeof googlePendingResponseSchema>;
+
+export const completeGoogleSignupSchema = z.object({
+  username: usernameSchema,
+});
+export type CompleteGoogleSignupInput = z.infer<
+  typeof completeGoogleSignupSchema
+>;

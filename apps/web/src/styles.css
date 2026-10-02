@@ -258,3 +258,41 @@ a {
   color: var(--ok);
   border-color: currentColor;
 }
+
+.button-google {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.details .button-google {
+  width: auto;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--border);
+}
+
+.notice {
+  padding: 10px 12px;
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+}

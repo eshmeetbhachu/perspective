@@ -6,19 +6,19 @@ import {
 import { sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { db } from "../../db/client";
-import { uniqueViolation } from "../../db/errors";
 import { users } from "../../db/schema";
 import { AppError } from "../../errors";
 import { requireUser } from "../../plugins/auth";
 import { hashPassword, verifyAgainstDummy, verifyPassword } from "./passwords";
+import { linkPendingGoogle } from "./oauth";
 import {
-  type AuthUser,
   authUserColumns,
   clearSessionCookie,
   deleteSession,
   startSession,
   toPublicUser,
 } from "./sessions";
+import { insertUser } from "./users";
 
 function rateLimit(max: number, minutes: number) {
   return { rateLimit: { max, timeWindow: minutes * 60_000 } };
@@ -26,32 +26,6 @@ function rateLimit(max: number, minutes: number) {
 
 const invalidCredentials = () =>
   new AppError(401, "INVALID_CREDENTIALS", "Wrong email or password");
-
-async function insertUser(
-  values: typeof users.$inferInsert,
-): Promise<AuthUser> {
-  try {
-    const [user] = await db
-      .insert(users)
-      .values(values)
-      .returning(authUserColumns);
-    if (!user) throw new Error("Insert returned no user");
-    return user;
-  } catch (err) {
-    const constraint = uniqueViolation(err);
-    if (constraint === "users_email_lower_unique") {
-      throw new AppError(
-        409,
-        "EMAIL_TAKEN",
-        "An account with this email already exists",
-      );
-    }
-    if (constraint === "users_username_lower_unique") {
-      throw new AppError(409, "USERNAME_TAKEN", "This username is taken");
-    }
-    throw err;
-  }
-}
 
 export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
@@ -96,8 +70,14 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         throw new AppError(403, "FORBIDDEN", "This account has been suspended");
       }
 
+      const googleLinked = await linkPendingGoogle(request, reply, user);
       await startSession(request, reply, user.id);
-      return { user: toPublicUser(user) };
+      return {
+        user: toPublicUser({
+          ...user,
+          googleConnected: user.googleConnected || googleLinked,
+        }),
+      };
     },
   );
 

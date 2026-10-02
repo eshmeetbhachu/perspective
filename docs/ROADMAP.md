@@ -50,6 +50,7 @@ A platform where people understand viewpoints before debating them. Questions ar
 | D31 | Sign-up says when an email or username is already taken (409 `EMAIL_TAKEN` / `USERNAME_TAKEN`); login never reveals which part was wrong                                                                                                                                                                                                                   | Hiding taken emails at sign-up needs an email-only signup flow, which hurts usability. Sign-up is rate limited (5/hour/IP), so mass enumeration is slow. Login stays generic and spends the same hashing time for unknown emails                                                                                                             |
 | D32 | API tests (Vitest + `app.inject`) run against a separate `perspective_test` database from Phase 1 on, not only from Phase 7                                                                                                                                                                                                                                | Auth is security-critical; real-database tests catch constraint, cookie and session bugs that mocks hide. The test DB keeps dev data safe; Phase 7 extends this with E2E tests and seeding                                                                                                                                                   |
 | D33 | In development the browser only talks to the Vite dev server, which proxies `/api/*` to the API                                                                                                                                                                                                                                                            | One origin means the session cookie is first-party and no CORS is involved, matching how production will serve the API under the same site. The API still enforces `Origin` (D30) and CORS for when they are split                                                                                                                           |
+| D34 | Google sign-in uses `openid-client` (OpenID Connect) with ID-token signature checks turned on; it is off unless `GOOGLE_CLIENT_ID`/`SECRET` are set. A Google identity that matches no linked account is stored server-side as a 15-minute, single-use pending record (hashed token in an httpOnly cookie)                                                 | A certified library handles state, PKCE, nonce, issuer/audience/expiry checks instead of hand-rolled crypto. The pending record carries a verified Google identity across the extra step (pick a username, or log in to the matching account) without trusting anything the browser sends back                                               |
 
 ---
 
@@ -180,7 +181,7 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 - [ ] Password-reset tokens: random, hashed, single-use, expire in 30 minutes
 - [x] Generic login errors ("wrong email or password"), so emails can't be enumerated
 - [ ] Google sign-in: `state` + PKCE + `nonce` on every login; ID token verified (signature, issuer, audience, expiry); only `email_verified` Google emails accepted; client secret only in env
-- [ ] No account linking by email alone; linking requires proving control of the existing account (D27)
+- [x] No account linking by email alone; linking requires proving control of the existing account (D27)
 - [x] Secrets only in environment variables, never committed; `.env.example` committed instead
 - [x] Database user with least privileges (no superuser for the app)
 - [ ] Logs never contain passwords, tokens, or full emails
@@ -209,7 +210,7 @@ Order decided in D25.
 - [x] `users` + `sessions` tables and migrations (UUIDv7 IDs, case-insensitive email/username)
 - [x] Register, login, logout, "who am I" endpoints, with argon2id, session cookies, CSRF protection, security headers, CORS, and rate limiting on auth routes
 - [x] Frontend: Vite + React, React Router, TanStack Query, sign-up / login pages, protected routes
-- [ ] Sign in with Google (OpenID Connect): `oauth_accounts` table, "pick a username" for new Google users, secure account linking (D27)
+- [ ] Sign in with Google (OpenID Connect): `oauth_accounts` table, "pick a username" for new Google users, secure account linking (D27) (built and tested against a simulated Google; the live round trip needs Google credentials, see README)
 - [ ] Email verification, and forgot/reset password (dev: emails print to console; prod: real provider)
 - [ ] Auth guard plugin; roles
 

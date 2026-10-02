@@ -3,6 +3,7 @@ import { type SubmitEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import { useCurrentUser, useRegister } from "../auth";
 import { Field } from "../components/Field";
+import { GoogleButton } from "../components/GoogleButton";
 import { errorsFromApi, type FieldErrors, validate } from "../forms";
 
 export function SignupPage() {
@@ -86,6 +87,7 @@ export function SignupPage() {
           {register.isPending ? "Creating account…" : "Sign up"}
         </button>
       </form>
+      <GoogleButton />
       <p className="muted">
         Already have an account? <Link to="/login">Log in</Link>
       </p>

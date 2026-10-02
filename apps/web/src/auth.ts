@@ -1,5 +1,8 @@
 import type {
+  CompleteGoogleSignupInput,
+  GooglePendingResponse,
   LoginInput,
+  ProvidersResponse,
   PublicUser,
   RegisterInput,
   UserResponse,
@@ -52,6 +55,45 @@ export function useLogout() {
     mutationFn: () => api<undefined>("/auth/logout", { method: "POST" }),
     onSuccess: () => {
       queryClient.setQueryData(ME, null);
+    },
+  });
+}
+
+export function useProviders() {
+  return useQuery({
+    queryKey: ["providers"],
+    queryFn: () => api<ProvidersResponse>("/auth/providers"),
+    staleTime: Infinity,
+  });
+}
+
+// The Google sign-in waiting to be finished, or null if there is none.
+export function useGooglePending(enabled = true) {
+  return useQuery({
+    queryKey: ["google-pending"],
+    enabled,
+    queryFn: async (): Promise<GooglePendingResponse | null> => {
+      try {
+        return await api<GooglePendingResponse>("/auth/google/pending");
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
+    },
+  });
+}
+
+export function useCompleteGoogleSignup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CompleteGoogleSignupInput) =>
+      api<UserResponse>("/auth/google/complete", {
+        method: "POST",
+        body: input,
+      }),
+    onSuccess: ({ user }) => {
+      queryClient.setQueryData(ME, user);
+      queryClient.removeQueries({ queryKey: ["google-pending"] });
     },
   });
 }

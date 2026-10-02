@@ -117,6 +117,23 @@ Open <http://localhost:5173> (use `localhost`, not `127.0.0.1`: the API only
 accepts changes from the exact origin in `WEB_ORIGIN`). The dev server forwards
 `/api/*` to the API, so the browser only ever talks to one origin.
 
+### Optional: Sign in with Google
+
+Google sign-in stays hidden until the API has a Google OAuth client:
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) and create a
+   project (any name, e.g. "Perspective dev").
+2. Go to **Google Auth Platform → Branding** and fill in the app name and your
+   email. Under **Audience**, choose **External** and add your own Google
+   account as a **test user**.
+3. Go to **Clients → Create client**, pick **Web application**, and add:
+   - Authorized JavaScript origin: `http://localhost:5173`
+   - Authorized redirect URI: `http://localhost:5173/api/auth/google/callback`
+4. Copy the client ID and secret into `.env` as `GOOGLE_CLIENT_ID` and
+   `GOOGLE_CLIENT_SECRET`, then restart the API.
+
+The client secret is a password: keep it only in `.env`.
+
 ## Scripts
 
 Run from the repository root.

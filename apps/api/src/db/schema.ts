@@ -6,6 +6,7 @@ import {
   inet,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -81,4 +82,40 @@ export const sessions = pgTable(
     // "Log out everywhere" and cascade deletes find a user's sessions.
     index("sessions_user_id_idx").on(t.userId),
   ],
+);
+
+export const oauthProviderEnum = pgEnum("oauth_provider", ["google"]);
+
+// A Google account attached to a user. Matched by Google's stable user id
+// (`sub`), never by email (D27).
+export const oauthAccounts = pgTable(
+  "oauth_accounts",
+  {
+    provider: oauthProviderEnum().notNull(),
+    providerUserId: text().notNull(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.provider, t.providerUserId] }),
+    uniqueIndex("oauth_accounts_user_provider_unique").on(t.userId, t.provider),
+  ],
+);
+
+// A verified Google identity waiting for the next step: picking a username
+// (new account) or logging in to the existing account it should join.
+export const oauthPending = pgTable(
+  "oauth_pending",
+  {
+    id: id(),
+    tokenHash: text().notNull(),
+    provider: oauthProviderEnum().notNull(),
+    providerUserId: text().notNull(),
+    email: text().notNull(),
+    expiresAt: timestamptz().notNull(),
+    createdAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("oauth_pending_token_hash_unique").on(t.tokenHash)],
 );

@@ -16,6 +16,13 @@ const EnvSchema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   // The only origin allowed to make state-changing requests (CSRF, CORS).
   WEB_ORIGIN: z.url().default("http://localhost:5173"),
+  // Google sign-in is switched off until both are set.
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  // Must match a redirect URI registered in Google Cloud Console.
+  GOOGLE_REDIRECT_URI: z
+    .url()
+    .default("http://localhost:5173/api/auth/google/callback"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

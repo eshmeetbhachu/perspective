@@ -2,10 +2,11 @@ import type { ErrorResponse, UserResponse } from "@perspective/shared";
 import type { FastifyInstance, LightMyRequestResponse } from "fastify";
 import { env } from "../src/config/env";
 import { db } from "../src/db/client";
-import { users } from "../src/db/schema";
+import { oauthPending, users } from "../src/db/schema";
 
 export async function resetDatabase(): Promise<void> {
   await db.delete(users);
+  await db.delete(oauthPending);
 }
 
 export function post(
@@ -35,8 +36,14 @@ export function get(
   });
 }
 
+export function findCookie(response: LightMyRequestResponse, name: string) {
+  return response.cookies.find(
+    (cookie) => cookie.name === name && cookie.value !== "",
+  );
+}
+
 export function sessionCookie(response: LightMyRequestResponse) {
-  return response.cookies.find((cookie) => cookie.name === "session");
+  return findCookie(response, "session");
 }
 
 export async function register(
