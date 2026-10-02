@@ -10,6 +10,7 @@ import {
 import { env } from "./config/env";
 import { loggerOptions } from "./config/logger";
 import { AppError } from "./errors";
+import { emailRoutes } from "./modules/auth/email-routes";
 import { googleRoutes } from "./modules/auth/google-routes";
 import { authRoutes } from "./modules/auth/routes";
 import { healthRoutes } from "./modules/health/routes";
@@ -52,6 +53,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(healthRoutes);
   await app.register(authRoutes);
   await app.register(googleRoutes);
+  await app.register(emailRoutes);
 
   return app;
 }

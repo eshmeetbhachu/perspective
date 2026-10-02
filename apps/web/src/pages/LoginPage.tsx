@@ -91,6 +91,9 @@ export function LoginPage() {
           }}
           error={errors.password}
         />
+        <p className="field-hint forgot">
+          <Link to="/forgot-password">Forgot your password?</Link>
+        </p>
         {formError && <p className="form-error">{formError}</p>}
         <button type="submit" className="button" disabled={login.isPending}>
           {login.isPending ? "Logging in…" : "Log in"}

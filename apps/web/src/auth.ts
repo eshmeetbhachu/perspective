@@ -1,10 +1,12 @@
 import type {
   CompleteGoogleSignupInput,
+  ForgotPasswordInput,
   GooglePendingResponse,
   LoginInput,
   ProvidersResponse,
   PublicUser,
   RegisterInput,
+  ResetPasswordInput,
   UserResponse,
 } from "@perspective/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -94,6 +96,54 @@ export function useCompleteGoogleSignup() {
     onSuccess: ({ user }) => {
       queryClient.setQueryData(ME, user);
       queryClient.removeQueries({ queryKey: ["google-pending"] });
+    },
+  });
+}
+
+export function useResendVerification() {
+  return useMutation({
+    mutationFn: () =>
+      api<undefined>("/auth/email/verify/send", { method: "POST" }),
+  });
+}
+
+// A query rather than a mutation so the link is used exactly once, even when
+// React renders the page twice in development.
+export function useVerifyEmail(token: string) {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: ["verify-email", token],
+    queryFn: async () => {
+      await api<undefined>("/auth/email/verify", {
+        method: "POST",
+        body: { token },
+      });
+      await queryClient.invalidateQueries({ queryKey: ME });
+      return true;
+    },
+    enabled: token !== "",
+    retry: false,
+    staleTime: Infinity,
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (input: ForgotPasswordInput) =>
+      api<undefined>("/auth/password/forgot", { method: "POST", body: input }),
+  });
+}
+
+export function useResetPassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ResetPasswordInput) =>
+      api<UserResponse>("/auth/password/reset", {
+        method: "POST",
+        body: input,
+      }),
+    onSuccess: ({ user }) => {
+      queryClient.setQueryData(ME, user);
     },
   });
 }

@@ -71,3 +71,18 @@ export const completeGoogleSignupSchema = z.object({
 export type CompleteGoogleSignupInput = z.infer<
   typeof completeGoogleSignupSchema
 >;
+
+// Tokens arrive from links in emails.
+const emailLinkToken = z.string().min(1).max(200);
+
+export const verifyEmailSchema = z.object({ token: emailLinkToken });
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+
+export const forgotPasswordSchema = z.object({ email: emailSchema });
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  token: emailLinkToken,
+  password: passwordSchema,
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

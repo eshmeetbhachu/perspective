@@ -10,6 +10,7 @@ import { users } from "../../db/schema";
 import { AppError } from "../../errors";
 import { requireUser } from "../../plugins/auth";
 import { hashPassword, verifyAgainstDummy, verifyPassword } from "./passwords";
+import { sendVerificationEmail } from "./email-tokens";
 import { linkPendingGoogle } from "./oauth";
 import {
   authUserColumns,
@@ -42,6 +43,11 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         passwordHash: await hashPassword(password),
       });
       await startSession(request, reply, user.id);
+      try {
+        await sendVerificationEmail(user, request.log);
+      } catch (err) {
+        request.log.error({ err }, "verification email failed");
+      }
       return reply.status(201).send({ user: toPublicUser(user) });
     },
   );

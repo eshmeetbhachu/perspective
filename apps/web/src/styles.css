@@ -296,3 +296,8 @@ a {
   border-left: 3px solid var(--accent);
   border-radius: 8px;
 }
+
+.forgot {
+  margin: -8px 0 18px;
+  text-align: right;
+}

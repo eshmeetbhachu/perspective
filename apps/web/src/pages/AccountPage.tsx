@@ -1,10 +1,11 @@
 import { useSearchParams } from "react-router";
-import { useCurrentUser, useProviders } from "../auth";
+import { useCurrentUser, useProviders, useResendVerification } from "../auth";
 import { GoogleButton } from "../components/GoogleButton";
 
 export function AccountPage() {
   const { data: user } = useCurrentUser();
   const { data: providers } = useProviders();
+  const resend = useResendVerification();
   const [searchParams] = useSearchParams();
   if (!user) return null;
 
@@ -30,6 +31,26 @@ export function AccountPage() {
             <span className="badge badge-ok">verified</span>
           ) : (
             <span className="badge">not verified yet</span>
+          )}
+          {!user.emailVerified && (
+            <p className="field-hint">
+              {resend.isSuccess ? (
+                "Sent. Check your inbox for the link."
+              ) : (
+                <button
+                  type="button"
+                  className="link-button"
+                  disabled={resend.isPending}
+                  onClick={() => {
+                    resend.mutate();
+                  }}
+                >
+                  Send the verification link again
+                </button>
+              )}
+              {resend.isError &&
+                " Couldn't send it, try again in a few minutes."}
+            </p>
           )}
         </dd>
         <dt>Role</dt>

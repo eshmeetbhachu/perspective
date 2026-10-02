@@ -119,3 +119,27 @@ export const oauthPending = pgTable(
   },
   (t) => [uniqueIndex("oauth_pending_token_hash_unique").on(t.tokenHash)],
 );
+
+export const emailTokenPurposeEnum = pgEnum("email_token_purpose", [
+  "verify_email",
+  "reset_password",
+]);
+
+// Links sent by email. A token is used up by deleting its row.
+export const emailTokens = pgTable(
+  "email_tokens",
+  {
+    id: id(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    purpose: emailTokenPurposeEnum().notNull(),
+    tokenHash: text().notNull(),
+    expiresAt: timestamptz().notNull(),
+    createdAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("email_tokens_token_hash_unique").on(t.tokenHash),
+    index("email_tokens_user_id_idx").on(t.userId),
+  ],
+);

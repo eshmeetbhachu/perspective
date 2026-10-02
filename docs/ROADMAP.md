@@ -51,6 +51,7 @@ A platform where people understand viewpoints before debating them. Questions ar
 | D32 | API tests (Vitest + `app.inject`) run against a separate `perspective_test` database from Phase 1 on, not only from Phase 7                                                                                                                                                                                                                                | Auth is security-critical; real-database tests catch constraint, cookie and session bugs that mocks hide. The test DB keeps dev data safe; Phase 7 extends this with E2E tests and seeding                                                                                                                                                   |
 | D33 | In development the browser only talks to the Vite dev server, which proxies `/api/*` to the API                                                                                                                                                                                                                                                            | One origin means the session cookie is first-party and no CORS is involved, matching how production will serve the API under the same site. The API still enforces `Origin` (D30) and CORS for when they are split                                                                                                                           |
 | D34 | Google sign-in uses `openid-client` (OpenID Connect) with ID-token signature checks turned on; it is off unless `GOOGLE_CLIENT_ID`/`SECRET` are set. A Google identity that matches no linked account is stored server-side as a 15-minute, single-use pending record (hashed token in an httpOnly cookie)                                                 | A certified library handles state, PKCE, nonce, issuer/audience/expiry checks instead of hand-rolled crypto. The pending record carries a verified Google identity across the extra step (pick a username, or log in to the matching account) without trusting anything the browser sends back                                               |
+| D35 | Email links (verify email, reset password) share one `email_tokens` table: hashed tokens, a new link cancels older ones, and a token is used up by one `DELETE … RETURNING` statement. Links open a page that POSTs the token. Forgot-password always answers 204. A reset verifies the email and logs out every session                                   | The single statement makes links strictly single-use even under simultaneous clicks. POSTing from a page stops email scanners that preview links from using them up. A same-answer forgot form can't reveal who has an account. A reset may follow a compromise, so all old sessions end                                                     |
 
 ---
 
@@ -178,13 +179,13 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 - [ ] Rate limiting on login, register, password reset, posting, voting
 - [x] Security headers via `@fastify/helmet`; strict CORS (only your frontend's origin)
 - [ ] Email verification required before posting or voting
-- [ ] Password-reset tokens: random, hashed, single-use, expire in 30 minutes
+- [x] Password-reset tokens: random, hashed, single-use, expire in 30 minutes
 - [x] Generic login errors ("wrong email or password"), so emails can't be enumerated
 - [ ] Google sign-in: `state` + PKCE + `nonce` on every login; ID token verified (signature, issuer, audience, expiry); only `email_verified` Google emails accepted; client secret only in env
 - [x] No account linking by email alone; linking requires proving control of the existing account (D27)
 - [x] Secrets only in environment variables, never committed; `.env.example` committed instead
 - [x] Database user with least privileges (no superuser for the app)
-- [ ] Logs never contain passwords, tokens, or full emails
+- [x] Logs never contain passwords, tokens, or full emails (the development mailer prints email links on purpose; production never logs them)
 - [ ] `pnpm audit` + Dependabot in CI
 - [ ] HTTPS everywhere in production; automated database backups, with a tested restore
 
@@ -211,7 +212,7 @@ Order decided in D25.
 - [x] Register, login, logout, "who am I" endpoints, with argon2id, session cookies, CSRF protection, security headers, CORS, and rate limiting on auth routes
 - [x] Frontend: Vite + React, React Router, TanStack Query, sign-up / login pages, protected routes
 - [ ] Sign in with Google (OpenID Connect): `oauth_accounts` table, "pick a username" for new Google users, secure account linking (D27) (built and tested against a simulated Google; the live round trip needs Google credentials, see README)
-- [ ] Email verification, and forgot/reset password (dev: emails print to console; prod: real provider)
+- [x] Email verification, and forgot/reset password (dev: emails print to the API log; the production email provider is set up with deployment in Phase 8)
 - [ ] Auth guard plugin; roles
 
 ### Phase 2: Questions
@@ -261,6 +262,7 @@ Order decided in D25.
 - [ ] GitHub Actions CI: lint, type-check, test, audit on every push
 - [ ] Deploy API + managed Postgres + static frontend
 - [ ] Migrations run automatically on deploy
+- [ ] Production email provider for verification and password-reset emails (moved from Phase 1)
 - [ ] Domain, HTTPS, backups, error monitoring
 - 🟡 **Your call:** hosting provider (we'll compare cost vs control when we get here)
 

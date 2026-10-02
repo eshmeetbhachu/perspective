@@ -9,10 +9,13 @@ import {
 import { useCurrentUser, useLogout } from "./auth";
 import { RequireAuth } from "./components/RequireAuth";
 import { AccountPage } from "./pages/AccountPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { GoogleSignupPage } from "./pages/GoogleSignupPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SignupPage } from "./pages/SignupPage";
+import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 
 export function App() {
   return (
@@ -22,6 +25,9 @@ export function App() {
         <Route path="signup" element={<SignupPage />} />
         <Route path="signup/google" element={<GoogleSignupPage />} />
         <Route path="login" element={<LoginPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
+        <Route path="verify-email" element={<VerifyEmailPage />} />
         <Route element={<RequireAuth />}>
           <Route path="account" element={<AccountPage />} />
         </Route>
