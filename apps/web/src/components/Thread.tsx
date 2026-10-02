@@ -6,6 +6,7 @@ import { useDeleteComment, useReply } from "../challenges";
 import { errorsFromApi, validate } from "../forms";
 import { renderMarkdown } from "../markdown";
 import { formatDate } from "./QuestionCard";
+import { ReportButton } from "./ReportButton";
 
 interface Node {
   comment: Comment;
@@ -109,14 +110,17 @@ function CommentNode({
   const remove = useDeleteComment(challengeId);
   const [replying, setReplying] = useState(false);
   const html = useMemo(() => renderMarkdown(comment.body), [comment.body]);
+  const hidden = comment.deleted || comment.removed;
   const isOwn = Boolean(
-    user && !comment.deleted && comment.author?.username === user.username,
+    user && !hidden && comment.author?.username === user.username,
   );
 
   return (
     <li className="comment" id={`comment-${comment.id}`}>
-      {comment.deleted ? (
-        <p className="comment-deleted">[deleted]</p>
+      {hidden ? (
+        <p className="comment-deleted">
+          {comment.removed ? "[removed by a moderator]" : "[deleted]"}
+        </p>
       ) : (
         <>
           <p className="question-meta comment-meta">
@@ -139,6 +143,9 @@ function CommentNode({
               >
                 Reply
               </button>
+            )}
+            {!isOwn && (
+              <ReportButton targetType="comment" targetId={comment.id} />
             )}
             {isOwn && (
               <button

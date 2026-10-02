@@ -913,3 +913,90 @@ a {
 .notification .question-meta {
   margin: 2px 0 0;
 }
+
+.report-form {
+  flex-basis: 100%;
+  padding: 10px 12px;
+  margin-top: 6px;
+  font-size: 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.report-form fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+  margin: 0 0 8px;
+  border: none;
+}
+
+.report-form legend {
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.report-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.post-actions {
+  flex-wrap: wrap;
+}
+
+.moderation {
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.queue-card .badge {
+  margin-right: 4px;
+  text-transform: capitalize;
+}
+
+.report-details {
+  padding-left: 18px;
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.moderation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.moderation-actions input {
+  flex: 1 1 240px;
+  padding: 6px 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.moderation .field input {
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.danger-button {
+  color: #fff;
+  background: var(--danger);
+}

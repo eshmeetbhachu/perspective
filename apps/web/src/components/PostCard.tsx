@@ -5,6 +5,7 @@ import { useCurrentUser } from "../auth";
 import { renderMarkdown } from "../markdown";
 import { useDeletePost } from "../posts";
 import { HelpfulButton } from "./HelpfulButton";
+import { ReportButton } from "./ReportButton";
 import { formatDate } from "./QuestionCard";
 
 const LONG_POST = 600;
@@ -59,6 +60,7 @@ export function PostCard({ post }: { post: Post }) {
         {user && !isOwn && (
           <Link to={`/posts/${post.id}/challenge`}>Challenge</Link>
         )}
+        {!isOwn && <ReportButton targetType="post" targetId={post.id} />}
       </div>
       {isOwn && (
         <div className="post-actions">

@@ -4,6 +4,7 @@ import { ApiError } from "../api";
 import { useCurrentUser } from "../auth";
 import { useChallenge, useThread } from "../challenges";
 import { formatDate } from "../components/QuestionCard";
+import { ReportButton } from "../components/ReportButton";
 import { ReplyForm, Thread } from "../components/Thread";
 import { renderMarkdown } from "../markdown";
 
@@ -78,6 +79,11 @@ export function ChallengePage() {
           // Sanitized by renderMarkdown (DOMPurify).
           dangerouslySetInnerHTML={{ __html: html }}
         />
+        {current.author?.username !== user?.username && (
+          <div className="post-actions">
+            <ReportButton targetType="challenge" targetId={current.id} />
+          </div>
+        )}
       </header>
 
       <section className="discussion">

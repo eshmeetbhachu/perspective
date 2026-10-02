@@ -17,6 +17,7 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { GoogleSignupPage } from "./pages/GoogleSignupPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { ModerationPage } from "./pages/ModerationPage";
 import { NewChallengePage } from "./pages/NewChallengePage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { PostPage } from "./pages/PostPage";
@@ -47,6 +48,7 @@ export function App() {
           <Route path="posts/:id/edit" element={<EditPostPage />} />
           <Route path="posts/:id/challenge" element={<NewChallengePage />} />
           <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="moderation" element={<ModerationPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
@@ -106,6 +108,9 @@ function AccountMenu() {
 
   return (
     <nav className="nav">
+      {(user.role === "moderator" || user.role === "admin") && (
+        <Link to="/moderation">Moderation</Link>
+      )}
       <NotificationsLink />
       <Link to="/account">{user.username}</Link>
       <button

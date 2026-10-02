@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from "react-router";
 import { ApiError } from "../api";
 import { useCurrentUser } from "../auth";
 import { PostColumn } from "../components/PostColumn";
+import { ReportButton } from "../components/ReportButton";
 import { formatDate } from "../components/QuestionCard";
 import { StancePicker } from "../components/StancePicker";
 import { useMyStance } from "../posts";
@@ -52,6 +53,11 @@ export function QuestionPage() {
         </p>
         {question.description && (
           <p className="question-description">{question.description}</p>
+        )}
+        {question.author?.username !== user?.username && (
+          <div className="post-actions">
+            <ReportButton targetType="question" targetId={question.id} />
+          </div>
         )}
       </header>
 

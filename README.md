@@ -8,9 +8,9 @@ Built as a learning project focused on system design and scalability. The full
 plan, with every design decision and the reasoning behind it, is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
-> **Status:** Phases 0–5 complete: accounts, questions, stances and posts,
-> cross-side helpful votes, and challenges with threaded discussions and
-> notifications.
+> **Status:** Phases 0–6 complete: accounts, questions, stances and posts,
+> cross-side helpful votes, challenges with threaded discussions, and
+> moderation (reports, review queue, bans, audit log, spam checks).
 
 ## Tech stack
 
