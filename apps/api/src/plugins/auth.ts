@@ -44,10 +44,6 @@ export function requireUser(request: FastifyRequest): AuthUser {
   return request.user;
 }
 
-export async function requireAuth(request: FastifyRequest): Promise<void> {
-  requireUser(request);
-}
-
 export async function requireVerifiedEmail(
   request: FastifyRequest,
 ): Promise<void> {
