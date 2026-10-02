@@ -7,14 +7,19 @@ import {
   useNavigate,
 } from "react-router";
 import { useCurrentUser, useLogout } from "./auth";
+import { useUnreadCount } from "./challenges";
 import { RequireAuth } from "./components/RequireAuth";
 import { AccountPage } from "./pages/AccountPage";
 import { AskPage } from "./pages/AskPage";
+import { ChallengePage } from "./pages/ChallengePage";
 import { EditPostPage } from "./pages/EditPostPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { GoogleSignupPage } from "./pages/GoogleSignupPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { NewChallengePage } from "./pages/NewChallengePage";
+import { NotificationsPage } from "./pages/NotificationsPage";
+import { PostPage } from "./pages/PostPage";
 import { QuestionPage } from "./pages/QuestionPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SignupPage } from "./pages/SignupPage";
@@ -27,6 +32,8 @@ export function App() {
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="q/:slug" element={<QuestionPage />} />
+        <Route path="posts/:id" element={<PostPage />} />
+        <Route path="c/:id" element={<ChallengePage />} />
         <Route path="signup" element={<SignupPage />} />
         <Route path="signup/google" element={<GoogleSignupPage />} />
         <Route path="login" element={<LoginPage />} />
@@ -38,6 +45,8 @@ export function App() {
           <Route path="ask" element={<AskPage />} />
           <Route path="q/:slug/write" element={<WritePostPage />} />
           <Route path="posts/:id/edit" element={<EditPostPage />} />
+          <Route path="posts/:id/challenge" element={<NewChallengePage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
@@ -61,6 +70,22 @@ function Layout() {
   );
 }
 
+function NotificationsLink() {
+  const { data } = useUnreadCount(true);
+  const unread = data?.unreadCount ?? 0;
+  return (
+    <Link
+      to="/notifications"
+      aria-label={
+        unread ? `Notifications, ${String(unread)} unread` : "Notifications"
+      }
+    >
+      Notifications
+      {unread > 0 && <span className="unread-badge">{unread}</span>}
+    </Link>
+  );
+}
+
 function AccountMenu() {
   const { data: user, isPending } = useCurrentUser();
   const logout = useLogout();
@@ -81,6 +106,7 @@ function AccountMenu() {
 
   return (
     <nav className="nav">
+      <NotificationsLink />
       <Link to="/account">{user.username}</Link>
       <button
         type="button"

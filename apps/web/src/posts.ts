@@ -106,6 +106,10 @@ export function useVote(slug: string) {
         method: voted ? "PUT" : "DELETE",
       }),
     onSuccess: (counts, { postId }) => {
+      queryClient.setQueryData<PostResponse>(
+        ["post", postId],
+        (data) => data && { post: { ...data.post, ...counts } },
+      );
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
         { queryKey: ["posts", slug] },
         (data) =>

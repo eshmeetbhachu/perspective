@@ -9,7 +9,7 @@ import { formatDate } from "./QuestionCard";
 
 const LONG_POST = 600;
 
-export function PostCard({ post, slug }: { post: Post; slug: string }) {
+export function PostCard({ post }: { post: Post }) {
   const { data: user } = useCurrentUser();
   const deletePost = useDeletePost();
   const [expanded, setExpanded] = useState(false);
@@ -44,12 +44,22 @@ export function PostCard({ post, slug }: { post: Post; slug: string }) {
           {expanded ? "Show less" : "Show more"}
         </button>
       )}
-      <HelpfulButton post={post} slug={slug} />
+      <HelpfulButton post={post} />
       <p className="question-meta">
         {post.author ? post.author.username : "deleted account"} ·{" "}
         {formatDate(post.createdAt)}
         {post.editedAt && " · edited"}
       </p>
+      <div className="post-actions">
+        <Link to={`/posts/${post.id}`}>
+          {post.challengeCount === 0
+            ? "Challenges"
+            : `${String(post.challengeCount)} ${post.challengeCount === 1 ? "challenge" : "challenges"}`}
+        </Link>
+        {user && !isOwn && (
+          <Link to={`/posts/${post.id}/challenge`}>Challenge</Link>
+        )}
+      </div>
       {isOwn && (
         <div className="post-actions">
           <Link to={`/posts/${post.id}/edit`}>Edit</Link>

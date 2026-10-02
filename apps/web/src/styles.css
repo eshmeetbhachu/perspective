@@ -72,8 +72,25 @@ a {
 
 .nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  justify-content: flex-end;
+  gap: 6px 16px;
+}
+
+.nav > * {
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .site-header {
+    gap: 12px;
+  }
+
+  .nav {
+    gap: 6px 12px;
+    font-size: 0.9rem;
+  }
 }
 
 .page {
@@ -748,4 +765,151 @@ a {
   margin: 0 0 6px;
   color: var(--accent);
   border-color: currentColor;
+}
+
+.unread-badge {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0 6px;
+  margin-left: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4em;
+  text-align: center;
+  color: var(--accent-text);
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.post-page,
+.challenge-page {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.post-page-card .post-card {
+  padding: 20px;
+  background: var(--surface);
+}
+
+.challenged-post {
+  padding: 12px 16px;
+  margin: 8px 0 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.challenged-post .section-title {
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+}
+
+.challenge-header h1 {
+  margin: 0 0 4px;
+  font-size: clamp(1.4rem, 3.5vw, 1.9rem);
+  line-height: 1.2;
+}
+
+.challenge-header .markdown {
+  margin-top: 14px;
+}
+
+.discussion {
+  margin-top: 32px;
+}
+
+.reply-form {
+  margin: 10px 0 16px;
+}
+
+.reply-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.reply-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.comment-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.comment-list .comment-list {
+  padding-left: 16px;
+  margin-top: 8px;
+  border-left: 2px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .comment-list .comment-list {
+    padding-left: 10px;
+  }
+}
+
+.comment {
+  padding: 8px 0;
+}
+
+.comment-meta {
+  margin: 0 0 4px;
+}
+
+.comment-deleted {
+  margin: 0;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.continue-thread {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.875rem;
+}
+
+.notification-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.notification {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.notification a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.notification.unread a {
+  font-weight: 600;
+}
+
+.notification.unread::before {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  content: "";
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.notification .question-meta {
+  margin: 2px 0 0;
 }

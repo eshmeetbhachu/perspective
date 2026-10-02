@@ -51,6 +51,7 @@ export const CROSS_SIDE_BADGE_MIN = 3;
 export const postSchema = z.object({
   id: z.uuid(),
   questionId: z.uuid(),
+  questionSlug: z.string(),
   stance: stanceSchema,
   title: z.string(),
   body: z.string(),

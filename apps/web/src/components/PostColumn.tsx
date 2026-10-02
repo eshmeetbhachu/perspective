@@ -36,7 +36,7 @@ export function PostColumn({
 
       <ul className="post-list">
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} slug={slug} />
+          <PostCard key={post.id} post={post} />
         ))}
       </ul>
 

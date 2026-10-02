@@ -13,6 +13,7 @@ import { AppError } from "../../errors";
 export const postColumns = {
   id: posts.id,
   questionId: posts.questionId,
+  questionSlug: questions.slug,
   stance: posts.stance,
   title: posts.title,
   body: posts.body,
@@ -41,6 +42,7 @@ export function toPost(row: Row): Post {
   return {
     id: row.id,
     questionId: row.questionId,
+    questionSlug: row.questionSlug,
     stance: row.stance,
     title: row.title,
     body: row.body,

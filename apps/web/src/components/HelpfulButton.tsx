@@ -25,10 +25,10 @@ function blockedReason(
   return null;
 }
 
-export function HelpfulButton({ post, slug }: { post: Post; slug: string }) {
+export function HelpfulButton({ post }: { post: Post }) {
   const { data: user } = useCurrentUser();
-  const myStance = useMyStance(slug, Boolean(user));
-  const vote = useVote(slug);
+  const myStance = useMyStance(post.questionSlug, Boolean(user));
+  const vote = useVote(post.questionSlug);
   const isOwn = Boolean(user && post.author?.username === user.username);
   const count = (
     <span className="helpful-count">
