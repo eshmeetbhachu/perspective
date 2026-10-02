@@ -62,6 +62,7 @@ A platform where people understand viewpoints before debating them. Questions ar
 | D43 | The 24-hour stance cooldown starts with the first declaration too, so the UI asks for confirmation before any stance change. Changes run in a transaction that locks the stance row                                                                                                                                                                        | Otherwise someone could declare, vote, and immediately flip to collect cross-side credit twice (D8). The row lock stops two simultaneous changes from both passing the cooldown check                                                                                                                                                                      |
 | D44 | Vote weights: same side 1, Neutral voter or Neutral post 2, opposite side 3. Each vote stores the voter's stance and the weight it added                                                                                                                                                                                                                   | Rewards bridging while same-side approval still counts. Because the stance snapshot is stored (D7), weights can be retuned later and every score recomputed exactly (`pnpm recompute-scores`)                                                                                                                                                              |
 | D45 | Accounts can vote once they are 24 hours old (plus a verified email)                                                                                                                                                                                                                                                                                       | Blocks the cheapest ranking attack (create account, vote, discard) at almost no cost to real users. Recording-but-delaying votes would need a background job, which belongs to Phase 9                                                                                                                                                                     |
+| D46 | Columns sort by Top (`helpful_score`, indexed), Hot (roadmap formula computed in the query "as of" a timestamp stored in the cursor), or New (id). Every sort uses keyset cursors of (sort value, id). "Valued across sides" = helpful to 3+ people from another side. After a vote, the UI updates counts in place instead of re-sorting                  | Top is an index range scan. Hot depends on the current time, so it can't be indexed; it is computed over one column of one question, which stays small, and freezing the time per listing keeps pages consistent. Phase 9 measures whether it needs a stored score. Not re-sorting avoids the post jumping away from the reader's cursor                   |
 
 ---
 
@@ -146,8 +147,8 @@ erDiagram
 | `questions`      | id, title, slug (unique), description, created_by (nullable), status (pending/published/removed), search_vector (generated), created_at                                    | `search_vector` powers full-text search; a trigram index on `title` powers "did you mean…?"; questions survive their author's account deletion     |
 | `user_stances`   | user_id, question_id, stance, updated_at                                                                                                                                   | Primary key (user_id, question_id): one stance per person per question                                                                             |
 | `stance_history` | id, user_id, question_id, from_stance, to_stance, changed_at                                                                                                               | Enables "changed my mind" insights later                                                                                                           |
-| `posts`          | id, question_id, author_id (nullable), stance, title, body (Markdown), created_at, edited_at, deleted_at                                                                   | One live post per author per side (partial unique index); `helpful_score` and `cross_side_count` arrive with votes in Phase 4                      |
-| `post_votes`     | user_id, post_id, voter_stance, created_at                                                                                                                                 | Primary key (user_id, post_id): one vote per person per post                                                                                       |
+| `posts`          | id, question_id, author_id (nullable), stance, title, body (Markdown), helpful_score, helpful_count, cross_side_count, created_at, edited_at, deleted_at                   | One live post per author per side (partial unique index). Scores are precomputed on each vote                                                      |
+| `post_votes`     | user_id, post_id, voter_stance, weight, created_at                                                                                                                         | Primary key (user_id, post_id): one vote per person per post. Stance and weight are frozen at vote time (D7, D44)                                  |
 | `challenges`     | id, post_id, created_by, title, body, status, created_at                                                                                                                   |                                                                                                                                                    |
 | `comments`       | id, challenge_id, parent_id, author_id, body, depth, created_at, deleted_at                                                                                                | Max depth enforced                                                                                                                                 |
 | `reports`        | id, reporter_id, target_type, target_id, reason, status, resolved_by, resolved_at                                                                                          |                                                                                                                                                    |
@@ -186,9 +187,9 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 - [x] Only parameterized queries (the ORM does this; never build SQL with string concatenation)
 - [x] User content rendered as plain text or sanitized Markdown (DOMPurify): blocks XSS
 - [x] Authorization checked on every write ("does this user own this post?"), not just authentication
-- [ ] Rate limiting on login, register, password reset, posting, voting
+- [x] Rate limiting on login, register, password reset, posting, voting
 - [x] Security headers via `@fastify/helmet`; strict CORS (only your frontend's origin)
-- [ ] Email verification required before posting or voting
+- [x] Email verification required before posting or voting
 - [x] Password-reset tokens: random, hashed, single-use, expire in 30 minutes
 - [x] Generic login errors ("wrong email or password"), so emails can't be enumerated
 - [x] Google sign-in: `state` + PKCE + `nonce` on every login; ID token verified (signature, issuer, audience, expiry); only `email_verified` Google emails accepted; client secret only in env
@@ -242,9 +243,9 @@ Order decided in D25.
 
 ### Phase 4: Helpful Votes and Ranking
 
-- [ ] Vote / unvote, with stance snapshot and transactional score update
-- [ ] Top and Hot sorting, with indexes to support both
-- [ ] UI: "Helped me understand" button, and a "valued across sides" badge
+- [x] Vote / unvote, with stance snapshot and transactional score update
+- [x] Top and Hot sorting, with indexes to support both
+- [x] UI: "Helped me understand" button, and a "valued across sides" badge
 
 ### Phase 5: Challenges and Discussion Threads
 

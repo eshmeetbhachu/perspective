@@ -3,10 +3,13 @@ import type {
   MyStanceResponse,
   PostListResponse,
   PostResponse,
+  PostSort,
   Stance,
   UpdatePostInput,
+  VoteResponse,
 } from "@perspective/shared";
 import {
+  type InfiniteData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -36,12 +39,12 @@ export function useSetStance(slug: string) {
   });
 }
 
-export function useColumn(slug: string, stance: Stance) {
+export function useColumn(slug: string, stance: Stance, sort: PostSort) {
   return useInfiniteQuery({
-    queryKey: ["posts", slug, stance],
+    queryKey: ["posts", slug, stance, sort],
     queryFn: ({ pageParam }) =>
       api<PostListResponse>(
-        `/questions/${slug}/posts?stance=${stance}${pageParam ? `&cursor=${pageParam}` : ""}`,
+        `/questions/${slug}/posts?stance=${stance}&sort=${sort}${pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : ""}`,
       ),
     initialPageParam: "",
     getNextPageParam: (page) => page.nextCursor ?? undefined,
@@ -89,6 +92,33 @@ export function useDeletePost() {
       api<undefined>(`/posts/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+}
+
+// Updates the counts in place instead of refetching, so a column doesn't
+// reshuffle under the reader's cursor right after they vote.
+export function useVote(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, voted }: { postId: string; voted: boolean }) =>
+      api<VoteResponse>(`/posts/${postId}/vote`, {
+        method: voted ? "PUT" : "DELETE",
+      }),
+    onSuccess: (counts, { postId }) => {
+      queryClient.setQueriesData<InfiniteData<PostListResponse>>(
+        { queryKey: ["posts", slug] },
+        (data) =>
+          data && {
+            ...data,
+            pages: data.pages.map((page) => ({
+              ...page,
+              posts: page.posts.map((post) =>
+                post.id === postId ? { ...post, ...counts } : post,
+              ),
+            })),
+          },
+      );
     },
   });
 }

@@ -1,4 +1,4 @@
-import type { Stance } from "@perspective/shared";
+import type { PostSort, Stance } from "@perspective/shared";
 import { Link } from "react-router";
 import { useColumn } from "../posts";
 import { PostCard } from "./PostCard";
@@ -6,13 +6,15 @@ import { PostCard } from "./PostCard";
 export function PostColumn({
   slug,
   stance,
+  sort,
   canWrite,
 }: {
   slug: string;
   stance: Stance;
+  sort: PostSort;
   canWrite: boolean;
 }) {
-  const column = useColumn(slug, stance);
+  const column = useColumn(slug, stance, sort);
   const posts = column.data?.pages.flatMap((page) => page.posts) ?? [];
 
   return (
@@ -34,7 +36,7 @@ export function PostColumn({
 
       <ul className="post-list">
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
+          <PostCard key={post.id} post={post} slug={slug} />
         ))}
       </ul>
 

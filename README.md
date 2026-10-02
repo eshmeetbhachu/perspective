@@ -8,8 +8,8 @@ Built as a learning project focused on system design and scalability. The full
 plan, with every design decision and the reasoning behind it, is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
-> **Status:** Phases 0–3 complete: accounts, questions with search, and
-> stances with For / Neutral / Against posts.
+> **Status:** Phases 0–4 complete: accounts, questions, stances and posts,
+> and cross-side helpful votes with Top / Trending / Newest sorting.
 
 ## Tech stack
 
@@ -149,6 +149,7 @@ Run from the repository root.
 | `pnpm db:generate`             | Create a migration from changes in `apps/api/src/db/`                        |
 | `pnpm db:migrate`              | Apply pending migrations to the database                                     |
 | `pnpm set-role <email> <role>` | Make an account `user`, `moderator`, or `admin`                              |
+| `pnpm recompute-scores`        | Rebuild vote weights and post scores after changing the weights              |
 | `pnpm test`                    | Run the web tests, and the API tests against the `perspective_test` database |
 | `pnpm build`                   | Build the web app for production into `apps/web/dist`                        |
 | `pnpm typecheck`               | Type-check every package                                                     |
