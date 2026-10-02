@@ -14,6 +14,7 @@ import { emailRoutes } from "./modules/auth/email-routes";
 import { googleRoutes } from "./modules/auth/google-routes";
 import { authRoutes } from "./modules/auth/routes";
 import { healthRoutes } from "./modules/health/routes";
+import { questionRoutes } from "./modules/questions/routes";
 import { loadSession } from "./plugins/auth";
 import { checkOrigin } from "./plugins/csrf";
 import { errorHandler, notFoundHandler } from "./plugins/error-handler";
@@ -54,6 +55,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(authRoutes);
   await app.register(googleRoutes);
   await app.register(emailRoutes);
+  await app.register(questionRoutes);
 
   return app;
 }

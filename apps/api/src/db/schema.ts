@@ -2,6 +2,7 @@ import { STANCES, USER_ROLES } from "@perspective/shared";
 import { sql } from "drizzle-orm";
 import {
   check,
+  customType,
   index,
   inet,
   pgEnum,
@@ -141,5 +142,50 @@ export const emailTokens = pgTable(
   (t) => [
     uniqueIndex("email_tokens_token_hash_unique").on(t.tokenHash),
     index("email_tokens_user_id_idx").on(t.userId),
+  ],
+);
+
+export const questionStatusEnum = pgEnum("question_status", [
+  "pending",
+  "published",
+  "removed",
+]);
+
+const tsvector = customType<{ data: string }>({
+  dataType: () => "tsvector",
+});
+
+export const questions = pgTable(
+  "questions",
+  {
+    id: id(),
+    title: text().notNull(),
+    slug: text().notNull(),
+    description: text().notNull().default(""),
+    // Questions outlive their author's account.
+    createdBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    status: questionStatusEnum().notNull().default("published"),
+    // Kept up to date by Postgres itself; title words weigh more than
+    // description words when ranking search results.
+    searchVector: tsvector().generatedAlwaysAs(
+      sql`setweight(to_tsvector('english', title), 'A') || setweight(to_tsvector('english', description), 'B')`,
+    ),
+    createdAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("questions_slug_unique").on(t.slug),
+    // Newest-first listing: UUIDv7 ids are in creation order.
+    index("questions_status_id_idx").on(t.status, t.id.desc()),
+    index("questions_created_by_idx").on(t.createdBy, t.createdAt),
+    index("questions_search_idx").using("gin", t.searchVector),
+    index("questions_title_trgm_idx").using("gin", t.title.op("gin_trgm_ops")),
+    check(
+      "questions_title_length",
+      sql`char_length(${t.title}) between 10 and 150`,
+    ),
+    check(
+      "questions_description_length",
+      sql`char_length(${t.description}) <= 2000`,
+    ),
   ],
 );

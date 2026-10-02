@@ -2,9 +2,10 @@ import type { ErrorResponse, UserResponse } from "@perspective/shared";
 import type { FastifyInstance, LightMyRequestResponse } from "fastify";
 import { env } from "../src/config/env";
 import { db } from "../src/db/client";
-import { oauthPending, users } from "../src/db/schema";
+import { oauthPending, questions, users } from "../src/db/schema";
 
 export async function resetDatabase(): Promise<void> {
+  await db.delete(questions);
   await db.delete(users);
   await db.delete(oauthPending);
 }

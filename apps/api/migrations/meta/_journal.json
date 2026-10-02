@@ -29,6 +29,20 @@
       "when": 1790950347793,
       "tag": "0003_spicy_shotgun",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790953719430,
+      "tag": "0004_enable_pg_trgm",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790953738999,
+      "tag": "0005_cloudy_brood",
+      "breakpoints": true
     }
   ]
 }
