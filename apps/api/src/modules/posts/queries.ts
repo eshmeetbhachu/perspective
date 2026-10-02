@@ -1,7 +1,13 @@
 import type { Post } from "@perspective/shared";
 import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { posts, postVotes, questions, users } from "../../db/schema";
+import {
+  challenges,
+  posts,
+  postVotes,
+  questions,
+  users,
+} from "../../db/schema";
 import { AppError } from "../../errors";
 
 export const postColumns = {
@@ -18,6 +24,10 @@ export const postColumns = {
   crossSideCount: posts.crossSideCount,
   authorUsername: users.username,
   votedByMe: sql<boolean>`${postVotes.userId} is not null`,
+  challengeCount: sql<number>`(
+    select count(*) from ${challenges}
+    where ${challenges.postId} = ${posts.id} and ${challenges.status} = 'open'
+  )::int`,
 };
 
 type Row = {
@@ -41,6 +51,7 @@ export function toPost(row: Row): Post {
     helpfulCount: row.helpfulCount,
     crossSideCount: row.crossSideCount,
     votedByMe: row.votedByMe,
+    challengeCount: row.challengeCount,
   };
 }
 

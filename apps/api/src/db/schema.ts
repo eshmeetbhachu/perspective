@@ -1,6 +1,7 @@
 import { STANCES, USER_ROLES } from "@perspective/shared";
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   check,
   customType,
   index,
@@ -289,5 +290,100 @@ export const postVotes = pgTable(
   (t) => [
     primaryKey({ columns: [t.userId, t.postId] }),
     index("post_votes_post_idx").on(t.postId),
+  ],
+);
+
+export const challengeStatusEnum = pgEnum("challenge_status", [
+  "open",
+  "removed",
+]);
+
+// A challenge to one post; the debate happens in its comment thread.
+export const challenges = pgTable(
+  "challenges",
+  {
+    id: id(),
+    // Posts are only soft-deleted, so challenges keep their target (D15).
+    postId: uuid()
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    createdBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    title: text().notNull(),
+    body: text().notNull(),
+    status: challengeStatusEnum().notNull().default("open"),
+    createdAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [
+    index("challenges_post_idx").on(t.postId, t.id.desc()),
+    // One challenge per person per post; the thread is where it continues.
+    uniqueIndex("challenges_creator_post_unique").on(t.createdBy, t.postId),
+    index("challenges_creator_created_idx").on(t.createdBy, t.createdAt),
+    check(
+      "challenges_title_length",
+      sql`char_length(${t.title}) between 5 and 120`,
+    ),
+    check(
+      "challenges_body_length",
+      sql`char_length(${t.body}) between 30 and 5000`,
+    ),
+  ],
+);
+
+// Threaded replies as an adjacency list: each comment points at its parent
+// (D11), and `depth` is stored so limits can be checked without walking up.
+export const comments = pgTable(
+  "comments",
+  {
+    id: id(),
+    challengeId: uuid()
+      .notNull()
+      .references(() => challenges.id, { onDelete: "cascade" }),
+    parentId: uuid().references((): AnyPgColumn => comments.id, {
+      onDelete: "cascade",
+    }),
+    authorId: uuid().references(() => users.id, { onDelete: "set null" }),
+    body: text().notNull(),
+    depth: integer().notNull(),
+    createdAt: timestamptz().notNull().defaultNow(),
+    deletedAt: timestamptz(),
+  },
+  (t) => [
+    index("comments_challenge_parent_idx").on(t.challengeId, t.parentId),
+    index("comments_parent_idx").on(t.parentId),
+    index("comments_author_created_idx").on(t.authorId, t.createdAt),
+    check(
+      "comments_body_length",
+      sql`char_length(${t.body}) between 1 and 5000`,
+    ),
+    check("comments_depth_range", sql`${t.depth} between 1 and 50`),
+  ],
+);
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "post_challenged",
+  "comment_reply",
+]);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: id(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum().notNull(),
+    actorId: uuid().references(() => users.id, { onDelete: "set null" }),
+    challengeId: uuid()
+      .notNull()
+      .references(() => challenges.id, { onDelete: "cascade" }),
+    commentId: uuid().references(() => comments.id, { onDelete: "cascade" }),
+    readAt: timestamptz(),
+    createdAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [
+    index("notifications_user_idx").on(t.userId, t.id.desc()),
+    index("notifications_unread_idx")
+      .on(t.userId)
+      .where(sql`${t.readAt} is null`),
   ],
 );

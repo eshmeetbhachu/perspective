@@ -57,6 +57,13 @@
       "when": 1790957837647,
       "tag": "0007_clean_frog_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790959321784,
+      "tag": "0008_flaky_mentallo",
+      "breakpoints": true
     }
   ]
 }

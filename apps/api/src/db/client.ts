@@ -11,3 +11,8 @@ export const pool = new Pool({ connectionString: env.DATABASE_URL });
 // casing: camelCase names in TypeScript become snake_case in the database
 // (createdAt -> created_at), matching the roadmap's data model.
 export const db = drizzle({ client: pool, schema, casing: "snake_case" });
+
+// Either the database or an open transaction, so helpers can join a caller's
+// transaction.
+export type Executor =
+  typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];

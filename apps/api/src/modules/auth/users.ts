@@ -1,10 +1,8 @@
-import { db } from "../../db/client";
+import { db, type Executor } from "../../db/client";
 import { uniqueViolation } from "../../db/errors";
 import { users } from "../../db/schema";
 import { AppError } from "../../errors";
 import { type AuthUser, authUserColumns } from "./sessions";
-
-type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function insertUser(
   values: typeof users.$inferInsert,

@@ -13,7 +13,10 @@ import { AppError } from "./errors";
 import { emailRoutes } from "./modules/auth/email-routes";
 import { googleRoutes } from "./modules/auth/google-routes";
 import { authRoutes } from "./modules/auth/routes";
+import { challengeRoutes } from "./modules/challenges/routes";
+import { threadRoutes } from "./modules/challenges/thread";
 import { healthRoutes } from "./modules/health/routes";
+import { notificationRoutes } from "./modules/notifications/routes";
 import { postRoutes } from "./modules/posts/routes";
 import { questionRoutes } from "./modules/questions/routes";
 import { stanceRoutes } from "./modules/stances/routes";
@@ -62,6 +65,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(stanceRoutes);
   await app.register(postRoutes);
   await app.register(voteRoutes);
+  await app.register(challengeRoutes);
+  await app.register(threadRoutes);
+  await app.register(notificationRoutes);
 
   return app;
 }

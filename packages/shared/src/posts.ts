@@ -57,6 +57,7 @@ export const postSchema = z.object({
   author: z.object({ username: z.string() }).nullable(),
   createdAt: z.string(),
   editedAt: z.string().nullable(),
+  challengeCount: z.number().int(),
   ...voteSchema.shape,
 });
 export type Post = z.infer<typeof postSchema>;

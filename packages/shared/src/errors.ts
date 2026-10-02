@@ -14,6 +14,7 @@ export type ErrorCode =
   | "STANCE_REQUIRED"
   | "STANCE_COOLDOWN"
   | "ALREADY_POSTED"
+  | "ALREADY_CHALLENGED"
   | "ACCOUNT_TOO_NEW"
   | "OWN_POST"
   | "RATE_LIMITED"
