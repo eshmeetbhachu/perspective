@@ -10,6 +10,7 @@ import { useCurrentUser, useLogout } from "./auth";
 import { RequireAuth } from "./components/RequireAuth";
 import { AccountPage } from "./pages/AccountPage";
 import { AskPage } from "./pages/AskPage";
+import { EditPostPage } from "./pages/EditPostPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { GoogleSignupPage } from "./pages/GoogleSignupPage";
 import { HomePage } from "./pages/HomePage";
@@ -18,6 +19,7 @@ import { QuestionPage } from "./pages/QuestionPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SignupPage } from "./pages/SignupPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
+import { WritePostPage } from "./pages/WritePostPage";
 
 export function App() {
   return (
@@ -34,6 +36,8 @@ export function App() {
         <Route element={<RequireAuth />}>
           <Route path="account" element={<AccountPage />} />
           <Route path="ask" element={<AskPage />} />
+          <Route path="q/:slug/write" element={<WritePostPage />} />
+          <Route path="posts/:id/edit" element={<EditPostPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

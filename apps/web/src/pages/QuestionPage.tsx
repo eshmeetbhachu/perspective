@@ -1,12 +1,18 @@
 import { STANCES } from "@perspective/shared";
 import { Link, useParams } from "react-router";
 import { ApiError } from "../api";
+import { useCurrentUser } from "../auth";
+import { PostColumn } from "../components/PostColumn";
 import { formatDate } from "../components/QuestionCard";
+import { StancePicker } from "../components/StancePicker";
+import { useMyStance } from "../posts";
 import { useQuestion } from "../questions";
 
 export function QuestionPage() {
   const { slug = "" } = useParams();
   const { data, isPending, error } = useQuestion(slug);
+  const { data: user } = useCurrentUser();
+  const myStance = useMyStance(slug, Boolean(user));
 
   if (isPending) return <p className="muted">Loading…</p>;
 
@@ -40,12 +46,16 @@ export function QuestionPage() {
         )}
       </header>
 
+      <StancePicker slug={slug} />
+
       <div className="columns">
         {STANCES.map((stance) => (
-          <section key={stance} className={`column column-${stance}`}>
-            <h2 className={`stance stance-${stance}`}>{stance}</h2>
-            <p className="muted">No perspectives yet.</p>
-          </section>
+          <PostColumn
+            key={stance}
+            slug={slug}
+            stance={stance}
+            canWrite={myStance.data?.stance === stance}
+          />
         ))}
       </div>
     </article>

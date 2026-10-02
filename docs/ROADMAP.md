@@ -57,6 +57,9 @@ A platform where people understand viewpoints before debating them. Questions ar
 | D38 | Lists are ordered by `id` and paged with the last id as the cursor                                                                                                                                                                                                                                                                                         | UUIDv7 ids sort by creation time, so "newest first" needs no separate timestamp sort, and "older than this id" is one index range scan whatever the page depth (D14). New questions arriving between pages don't shift or duplicate results                                                                                                                |
 | D39 | Search: a generated `tsvector` column (title weighted above description, English stemming) + GIN index, returning the 30 best-ranked matches without paging. "Did you mean…?" uses `pg_trgm` trigram similarity on titles instead                                                                                                                          | Full-text search matches word forms (vote/voting) and ranks by relevance; Postgres keeps the column current itself. Deep pages of ranked results are rarely useful, and float ranks make fragile cursors. Trigrams tolerate typos and partial titles, which full-text search can't. A dedicated search engine waits until Phase 9 measurements call for it |
 | D40 | Slugs keep letters of every script (only Latin accents are dropped), are capped at 80 characters on a word boundary, get `-2`, `-3`… when taken, and never change                                                                                                                                                                                          | Readable URLs in any language (Hindi titles stay readable). The unique index settles races between simultaneous inserts. Stable slugs keep shared links working                                                                                                                                                                                            |
+| D41 | A post is filed under its author's stance at the moment of posting, and stays there if the author later changes sides. Each person may have one live post per side of a question (edit it to improve it) and 10 posts a day                                                                                                                                | Keeps D4 honest: the For column is written by people who stand For. The snapshot mirrors D7. One post per side pushes people to refine a single argument instead of flooding a column, and deleting it frees the slot                                                                                                                                      |
+| D42 | Post bodies are stored as Markdown and rendered in the browser with `marked`, then sanitized by DOMPurify with a small tag allowlist: no images, no raw HTML, links forced to `rel="noopener noreferrer nofollow ugc"`                                                                                                                                     | The allowlist blocks XSS even if the Markdown parser has a bug. Images are excluded because they can track readers from other servers. Storing the source keeps editing lossless and lets rendering rules change later                                                                                                                                     |
+| D43 | The 24-hour stance cooldown starts with the first declaration too, so the UI asks for confirmation before any stance change. Changes run in a transaction that locks the stance row                                                                                                                                                                        | Otherwise someone could declare, vote, and immediately flip to collect cross-side credit twice (D8). The row lock stops two simultaneous changes from both passing the cooldown check                                                                                                                                                                      |
 
 ---
 
@@ -141,7 +144,7 @@ erDiagram
 | `questions`      | id, title, slug (unique), description, created_by (nullable), status (pending/published/removed), search_vector (generated), created_at                                    | `search_vector` powers full-text search; a trigram index on `title` powers "did you mean…?"; questions survive their author's account deletion     |
 | `user_stances`   | user_id, question_id, stance, updated_at                                                                                                                                   | Primary key (user_id, question_id): one stance per person per question                                                                             |
 | `stance_history` | id, user_id, question_id, from_stance, to_stance, changed_at                                                                                                               | Enables "changed my mind" insights later                                                                                                           |
-| `posts`          | id, question_id, author_id, stance, title, body, helpful_score, cross_side_count, created_at, edited_at, deleted_at                                                        | Score stored on the row (precomputed)                                                                                                              |
+| `posts`          | id, question_id, author_id (nullable), stance, title, body (Markdown), created_at, edited_at, deleted_at                                                                   | One live post per author per side (partial unique index); `helpful_score` and `cross_side_count` arrive with votes in Phase 4                      |
 | `post_votes`     | user_id, post_id, voter_stance, created_at                                                                                                                                 | Primary key (user_id, post_id): one vote per person per post                                                                                       |
 | `challenges`     | id, post_id, created_by, title, body, status, created_at                                                                                                                   |                                                                                                                                                    |
 | `comments`       | id, challenge_id, parent_id, author_id, body, depth, created_at, deleted_at                                                                                                | Max depth enforced                                                                                                                                 |
@@ -179,8 +182,8 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 - [x] CSRF protection on every state-changing request
 - [x] Every request body, query, and param validated with a schema (Zod, D20)
 - [x] Only parameterized queries (the ORM does this; never build SQL with string concatenation)
-- [ ] User content rendered as plain text or sanitized Markdown (DOMPurify): blocks XSS
-- [ ] Authorization checked on every write ("does this user own this post?"), not just authentication
+- [x] User content rendered as plain text or sanitized Markdown (DOMPurify): blocks XSS
+- [x] Authorization checked on every write ("does this user own this post?"), not just authentication
 - [ ] Rate limiting on login, register, password reset, posting, voting
 - [x] Security headers via `@fastify/helmet`; strict CORS (only your frontend's origin)
 - [ ] Email verification required before posting or voting
@@ -230,10 +233,10 @@ Order decided in D25.
 
 ### Phase 3: Stances and Posts
 
-- [ ] Declare/change stance (cooldown + history)
-- [ ] Create/edit/soft-delete posts with an author stance
-- [ ] Three-column question page (For / Neutral / Against), each with cursor pagination
-- [ ] Markdown editor + sanitized rendering
+- [x] Declare/change stance (cooldown + history)
+- [x] Create/edit/soft-delete posts with an author stance
+- [x] Three-column question page (For / Neutral / Against), each with cursor pagination
+- [x] Markdown editor + sanitized rendering
 
 ### Phase 4: Helpful Votes and Ranking
 

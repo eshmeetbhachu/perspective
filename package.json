@@ -16,7 +16,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "pnpm --filter @perspective/api test",
+    "test": "pnpm -r test",
     "build": "pnpm --filter @perspective/web build"
   },
   "devDependencies": {

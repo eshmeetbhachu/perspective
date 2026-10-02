@@ -8,8 +8,8 @@ Built as a learning project focused on system design and scalability. The full
 plan, with every design decision and the reasoning behind it, is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
-> **Status:** Phases 0–2 complete: accounts (email/password and Google), and
-> questions with search and duplicate suggestions.
+> **Status:** Phases 0–3 complete: accounts, questions with search, and
+> stances with For / Neutral / Against posts.
 
 ## Tech stack
 
@@ -142,19 +142,19 @@ The client secret is a password: keep it only in `.env`.
 
 Run from the repository root.
 
-| Command                        | What it does                                              |
-| ------------------------------ | --------------------------------------------------------- |
-| `pnpm dev:web`                 | Start the web app at http://localhost:5173                |
-| `pnpm dev:api`                 | Start the API with auto-restart on file changes           |
-| `pnpm db:generate`             | Create a migration from changes in `apps/api/src/db/`     |
-| `pnpm db:migrate`              | Apply pending migrations to the database                  |
-| `pnpm set-role <email> <role>` | Make an account `user`, `moderator`, or `admin`           |
-| `pnpm test`                    | Run the API tests against the `perspective_test` database |
-| `pnpm build`                   | Build the web app for production into `apps/web/dist`     |
-| `pnpm typecheck`               | Type-check every package                                  |
-| `pnpm lint`                    | Lint the whole repository                                 |
-| `pnpm format`                  | Format all files with Prettier                            |
-| `pnpm format:check`            | Report unformatted files without changing them            |
+| Command                        | What it does                                                                 |
+| ------------------------------ | ---------------------------------------------------------------------------- |
+| `pnpm dev:web`                 | Start the web app at http://localhost:5173                                   |
+| `pnpm dev:api`                 | Start the API with auto-restart on file changes                              |
+| `pnpm db:generate`             | Create a migration from changes in `apps/api/src/db/`                        |
+| `pnpm db:migrate`              | Apply pending migrations to the database                                     |
+| `pnpm set-role <email> <role>` | Make an account `user`, `moderator`, or `admin`                              |
+| `pnpm test`                    | Run the web tests, and the API tests against the `perspective_test` database |
+| `pnpm build`                   | Build the web app for production into `apps/web/dist`                        |
+| `pnpm typecheck`               | Type-check every package                                                     |
+| `pnpm lint`                    | Lint the whole repository                                                    |
+| `pnpm format`                  | Format all files with Prettier                                               |
+| `pnpm format:check`            | Report unformatted files without changing them                               |
 
 ## Commit messages
 

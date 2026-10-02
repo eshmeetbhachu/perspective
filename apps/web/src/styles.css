@@ -489,6 +489,189 @@ a {
   font-size: 0.95rem;
 }
 
-.column p {
+.column > p {
   color: var(--muted);
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.stance-text-for {
+  color: var(--for);
+}
+
+.stance-text-neutral {
+  color: var(--neutral);
+}
+
+.stance-text-against {
+  color: var(--against);
+}
+
+.stance-picker {
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.stance-picker > p {
+  margin: 0 0 10px;
+}
+
+.stance-picker > p.muted:only-child {
+  margin: 0;
+}
+
+.stance-buttons,
+.stance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.stance-button {
+  font: inherit;
+  font-weight: 600;
+  background: transparent;
+  cursor: pointer;
+}
+
+.stance-button[aria-pressed="true"] {
+  color: var(--surface);
+  background: currentColor;
+}
+
+.stance-button:disabled:not([aria-pressed="true"]) {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.stance-button[aria-pressed="true"].stance-for {
+  background: var(--for);
+}
+
+.stance-button[aria-pressed="true"].stance-neutral {
+  background: var(--neutral);
+}
+
+.stance-button[aria-pressed="true"].stance-against {
+  background: var(--against);
+}
+
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.column-header h2 {
+  margin: 0;
+}
+
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  margin: 0 0 12px;
+  list-style: none;
+}
+
+.post-card {
+  padding: 14px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.post-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.markdown {
+  overflow-wrap: anywhere;
+}
+
+.markdown a:not([href]) {
+  color: inherit;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown blockquote {
+  padding-left: 12px;
+  margin: 8px 0;
+  color: var(--muted);
+  border-left: 3px solid var(--border);
+}
+
+.markdown pre {
+  padding: 10px;
+  overflow-x: auto;
+  background: var(--surface);
+  border-radius: 6px;
+}
+
+.markdown.clamped {
+  max-height: 12em;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 70%, transparent);
+}
+
+.post-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 0.875rem;
+}
+
+.editor-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editor-tabs label {
+  margin-right: auto;
+}
+
+.editor-tabs button {
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.editor-tabs button[aria-selected="true"] {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.preview {
+  min-height: 15em;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
