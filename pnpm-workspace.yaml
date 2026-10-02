@@ -3,3 +3,6 @@ packages:
   - "packages/*"
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - "@tanstack/query-core@5.104.1"
+  - "@tanstack/react-query@5.104.1"

@@ -2,6 +2,7 @@
 import eslint from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
 import prettier from "eslint-config-prettier";
+import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
@@ -28,6 +29,13 @@ export default defineConfig(
       // awaits are still caught by no-floating-promises.
       "@typescript-eslint/require-await": "off",
     },
+  },
+
+  // Rules of Hooks for the React app (hooks only at the top level, complete
+  // effect dependencies).
+  {
+    files: ["apps/web/**/*.{ts,tsx}"],
+    extends: [reactHooks.configs.flat.recommended],
   },
 
   // Plain .js config files aren't part of any tsconfig, so skip type-aware rules.

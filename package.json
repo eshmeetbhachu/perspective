@@ -8,18 +8,21 @@
   },
   "scripts": {
     "dev:api": "pnpm --filter @perspective/api dev",
+    "dev:web": "pnpm --filter @perspective/web dev",
     "db:generate": "pnpm --filter @perspective/api db:generate",
     "db:migrate": "pnpm --filter @perspective/api db:migrate",
     "typecheck": "tsc -p packages/shared && tsc -p apps/api && tsc -p apps/web",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "pnpm --filter @perspective/api test"
+    "test": "pnpm --filter @perspective/api test",
+    "build": "pnpm --filter @perspective/web build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "3.9.9",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.0"

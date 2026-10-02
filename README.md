@@ -8,7 +8,7 @@ Built as a learning project focused on system design and scalability. The full
 plan, with every design decision and the reasoning behind it, is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
-> **Status:** Phase 0 (foundation) complete. No user-facing pages yet.
+> **Status:** Phase 1 (accounts) in progress: sign up, log in, and log out work.
 
 ## Tech stack
 
@@ -105,16 +105,30 @@ curl http://127.0.0.1:3000/health/ready   # server can reach the database
 
 Both should return `{"status":"ok"}`.
 
+### 6. Start the web app
+
+In a second terminal:
+
+```sh
+pnpm dev:web
+```
+
+Open <http://localhost:5173> (use `localhost`, not `127.0.0.1`: the API only
+accepts changes from the exact origin in `WEB_ORIGIN`). The dev server forwards
+`/api/*` to the API, so the browser only ever talks to one origin.
+
 ## Scripts
 
 Run from the repository root.
 
 | Command             | What it does                                              |
 | ------------------- | --------------------------------------------------------- |
+| `pnpm dev:web`      | Start the web app at http://localhost:5173                |
 | `pnpm dev:api`      | Start the API with auto-restart on file changes           |
 | `pnpm db:generate`  | Create a migration from changes in `apps/api/src/db/`     |
 | `pnpm db:migrate`   | Apply pending migrations to the database                  |
 | `pnpm test`         | Run the API tests against the `perspective_test` database |
+| `pnpm build`        | Build the web app for production into `apps/web/dist`     |
 | `pnpm typecheck`    | Type-check every package                                  |
 | `pnpm lint`         | Lint the whole repository                                 |
 | `pnpm format`       | Format all files with Prettier                            |
