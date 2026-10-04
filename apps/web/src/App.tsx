@@ -4,6 +4,7 @@ import {
   Outlet,
   Route,
   Routes,
+  useLocation,
   useNavigate,
 } from "react-router";
 import { useCurrentUser, useLogout } from "./auth";
@@ -57,15 +58,19 @@ export function App() {
 }
 
 function Layout() {
+  // The front page's artwork runs edge to edge, with the header laid over it.
+  const isHome = useLocation().pathname === "/";
   return (
     <>
-      <header className="site-header">
+      <header
+        className={isHome ? "site-header site-header-overlay" : "site-header"}
+      >
         <Link to="/" className="brand">
           Perspective
         </Link>
         <AccountMenu />
       </header>
-      <main className="page">
+      <main className={isHome ? undefined : "page"}>
         <Outlet />
       </main>
     </>
@@ -98,10 +103,8 @@ function AccountMenu() {
   if (!user) {
     return (
       <nav className="nav">
-        <Link to="/login">Log in</Link>
-        <Link to="/signup" className="button button-small">
-          Sign up
-        </Link>
+        <Link to="/login">Login</Link>
+        <Link to="/signup">Sign up</Link>
       </nav>
     );
   }
@@ -112,7 +115,9 @@ function AccountMenu() {
         <Link to="/moderation">Moderation</Link>
       )}
       <NotificationsLink />
-      <Link to="/account">{user.username}</Link>
+      <Link to="/account" className="nav-user">
+        {user.username}
+      </Link>
       <button
         type="button"
         className="link-button"

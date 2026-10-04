@@ -1,45 +1,49 @@
 import type { Question } from "@perspective/shared";
 import { type SubmitEvent, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { useCurrentUser } from "../auth";
+import heading from "../assets/heading.svg";
+import heroArt from "../assets/hero.svg";
 import { QuestionCard } from "../components/QuestionCard";
 import { useLatestQuestions, useQuestionSearch } from "../questions";
 
 export function HomePage() {
-  const { data: user } = useCurrentUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q")?.trim() ?? "";
 
   return (
     <>
-      {!user && (
-        <section className="hero hero-compact">
-          <h1>Understand a view before you argue with it.</h1>
-          <p className="lead">
-            Every question is split into For, Neutral and Against. Read the
-            reasoning on each side, and debate only inside challenges.
-          </p>
-        </section>
-      )}
+      <section className="hero">
+        <img className="hero-art" src={heroArt} alt="" />
+        <h1 className="hero-heading">
+          <img src={heading} alt="Before you take a side, see every side" />
+        </h1>
+        <div className="hero-actions">
+          <a href="#questions" className="button hero-button">
+            Explore questions
+          </a>
+          <Link to="/ask" className="button hero-button">
+            Ask a question
+          </Link>
+        </div>
+      </section>
 
-      <div className="toolbar">
-        <SearchForm
-          key={query}
-          initial={query}
-          onSearch={(q) => {
-            setSearchParams(q ? { q } : {});
-          }}
-        />
-        <Link to="/ask" className="button button-small">
-          Ask a question
-        </Link>
+      <div className="page" id="questions">
+        <div className="toolbar">
+          <SearchForm
+            key={query}
+            initial={query}
+            onSearch={(q) => {
+              setSearchParams(q ? { q } : {});
+            }}
+          />
+        </div>
+
+        {query.length >= 2 ? (
+          <SearchResults query={query} />
+        ) : (
+          <LatestQuestions />
+        )}
       </div>
-
-      {query.length >= 2 ? (
-        <SearchResults query={query} />
-      ) : (
-        <LatestQuestions />
-      )}
     </>
   );
 }

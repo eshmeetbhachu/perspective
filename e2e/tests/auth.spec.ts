@@ -43,7 +43,7 @@ test("sign up, confirm the email, log out and back in", async ({ page }) => {
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Log out" }).click();
-  await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Login" })).toBeVisible();
 
   await page.goto("/login?next=%2Faccount");
   await page.getByLabel("Email").fill(email);

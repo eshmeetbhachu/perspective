@@ -1,44 +1,32 @@
 :root {
-  --bg: #f7f6f3;
-  --surface: #ffffff;
-  --text: #1d1d1f;
-  --muted: #6b6b70;
-  --border: #e2e0da;
-  --accent: #2f5bd3;
+  /* Sampled from the front-page artwork so pages blend into it. */
+  --bg: #f1efe7;
+  --surface: #fbfaf6;
+  --text: #121212;
+  --muted: #6a665e;
+  --border: #dcd8cc;
+  --accent: #9b301e;
   --accent-text: #ffffff;
-  --danger: #c0352b;
-  --ok: #2e7d4f;
-  --for: #2e7d4f;
-  --neutral: #8a7a3d;
-  --against: #b0413e;
+  --danger: #b3261e;
+  --ok: #3e6b4a;
+  --for: #3e6b4a;
+  --neutral: #857331;
+  --against: #9b301e;
   --radius: 10px;
 
   font-family:
+    "Open Sauce One",
     system-ui,
     -apple-system,
     "Segoe UI",
-    Roboto,
     sans-serif;
   line-height: 1.5;
   color: var(--text);
   background: var(--bg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141416;
-    --surface: #1d1d20;
-    --text: #ececef;
-    --muted: #9d9da5;
-    --border: #2e2e33;
-    --accent: #7a9cff;
-    --accent-text: #0e1324;
-    --danger: #ff7b70;
-    --ok: #6ccf95;
-    --for: #6ccf95;
-    --neutral: #d7c27a;
-    --against: #ff8a85;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 * {
@@ -55,17 +43,27 @@ a {
 
 .site-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  max-width: 960px;
-  min-height: 68px;
-  margin: 0 auto;
-  padding: 16px;
+  gap: 16px;
+  padding: clamp(14px, 1.9vw, 40px) 4.75vw 16px 6.6vw;
+  font-size: clamp(0.95rem, 1.27vw, 1.6rem);
+  text-transform: uppercase;
+}
+
+/* On the front page the header sits on top of the artwork. */
+.site-header-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
 }
 
 .brand {
+  margin-top: 0.62em;
+  font-size: 0.96em;
   font-weight: 700;
-  font-size: 1.15rem;
   color: var(--text);
   text-decoration: none;
 }
@@ -75,22 +73,31 @@ a {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px 16px;
+  gap: 6px 0;
+  margin-top: -0.2em;
+  font-size: 0.94em;
+  font-weight: 600;
 }
 
 .nav > * {
+  font: inherit;
+  color: var(--text);
+  text-transform: inherit;
+  text-decoration: none;
   white-space: nowrap;
 }
 
-@media (max-width: 480px) {
-  .site-header {
-    gap: 12px;
-  }
+.nav > * + *::before {
+  margin: 0 0.6em;
+  content: "|";
+}
 
-  .nav {
-    gap: 6px 12px;
-    font-size: 0.9rem;
-  }
+.nav > *:hover {
+  color: var(--accent);
+}
+
+.nav .nav-user {
+  text-transform: none;
 }
 
 .page {
@@ -113,33 +120,88 @@ a {
   font-size: 1.5rem;
 }
 
+/* The artwork is as wide as the window and cropped from the top, so the
+   heading sits on its cream sky. Positions are fractions of the artwork. */
 .hero {
-  max-width: 640px;
-  margin: 48px auto 0;
-  text-align: center;
+  position: relative;
+  aspect-ratio: 1047 / 581;
+  overflow: hidden;
 }
 
-.hero-compact {
-  margin: 8px auto 32px;
+/* Placed as in the design: slightly oversized and nudged up and left. */
+.hero-art {
+  position: absolute;
+  top: -13.8%;
+  left: -2.48%;
+  width: 103.4%;
+  max-width: none;
 }
 
-.hero h1 {
-  font-size: clamp(1.8rem, 5vw, 2.6rem);
-  line-height: 1.15;
+.hero-heading {
+  position: absolute;
+  top: 20.5%;
+  right: 5.4%;
+  width: 47.3%;
+  margin: 0;
+  line-height: 0;
 }
 
-.lead {
-  color: var(--muted);
-  font-size: 1.1rem;
+.hero-heading img {
+  width: 100%;
+  height: auto;
 }
 
-.stances {
+.hero-actions {
+  position: absolute;
+  top: 45.6%;
+  right: 5.25%;
   display: flex;
+  gap: 1.45vw;
+}
+
+/* Two classes, so these sizes win over the general .button rule below. */
+.hero .hero-button {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 0;
-  margin: 28px 0;
-  list-style: none;
+  width: auto;
+  min-width: 9.85vw;
+  height: 2.65vw;
+  min-height: 34px;
+  padding: 0 1.3em;
+  font-size: clamp(0.78rem, 0.86vw, 1.2rem);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .hero {
+    aspect-ratio: 4 / 5;
+  }
+
+  .hero-art {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 24% 100%;
+  }
+
+  .hero-heading {
+    top: 15%;
+    right: 6%;
+    width: 88%;
+  }
+
+  .hero-actions {
+    top: 36%;
+    right: 6%;
+    gap: 10px;
+  }
+
+  .hero .hero-button {
+    height: 40px;
+    font-size: 0.82rem;
+  }
 }
 
 .stance {
@@ -224,12 +286,8 @@ a {
   color: var(--accent-text);
   background: var(--accent);
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   cursor: pointer;
-}
-
-.hero .button {
-  width: auto;
 }
 
 .button:disabled {
