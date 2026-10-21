@@ -1,4 +1,5 @@
 import type { FastifyBaseLogger } from "fastify";
+import { createTransport } from "nodemailer";
 import { env } from "./config/env";
 
 export interface Email {
@@ -13,17 +14,23 @@ export function maskEmail(email: string): string {
   return `${name.slice(0, 1)}***@${domain}`;
 }
 
-// Development prints emails to the API log instead of sending them. A real
-// provider is added with deployment (Phase 8).
+// Tests never send real email, even if .env has an SMTP server configured.
+const transport =
+  env.SMTP_URL && env.NODE_ENV !== "test"
+    ? createTransport(env.SMTP_URL)
+    : null;
+
 export async function sendEmail(
   email: Email,
   log: FastifyBaseLogger,
 ): Promise<void> {
-  if (env.NODE_ENV === "production") {
-    throw new Error("No email provider is configured");
+  if (!transport) {
+    log.info(
+      { to: maskEmail(email.to), subject: email.subject },
+      `email (not sent, no SMTP_URL):\n\n${email.text}\n`,
+    );
+    return;
   }
-  log.info(
-    { to: maskEmail(email.to), subject: email.subject },
-    `email (not sent in development):\n\n${email.text}\n`,
-  );
+  await transport.sendMail({ from: env.EMAIL_FROM, ...email });
+  log.info({ to: maskEmail(email.to), subject: email.subject }, "email sent");
 }

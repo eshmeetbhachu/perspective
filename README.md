@@ -164,24 +164,48 @@ pnpm seed --clear                       # remove everything the seed created
 Seeded accounts use emails ending in `@seed.example` and the password
 `seed-password-123`. Seeding never touches other accounts.
 
+## Production images
+
+The API and web app each have a Dockerfile (`apps/api/Dockerfile`,
+`apps/web/Dockerfile`). To run them locally the way they run in production:
+
+```sh
+docker compose --profile app up -d --build
+```
+
+- <http://localhost:4173>: the site, served by nginx, which forwards `/api/*`
+  to the API container
+- <http://localhost:8025>: Mailpit, a fake inbox that catches every email the
+  API sends (sign-up confirmations, password resets)
+
+The API container applies pending migrations before it starts. Stop everything
+except Postgres with `docker compose --profile app stop api web mailpit`.
+
+## Continuous integration
+
+Every push runs `.github/workflows/ci.yml` on GitHub: formatting, type checks,
+lint, `pnpm audit`, all tests (including end-to-end), the web build, and both
+Docker builds. Dependabot (`.github/dependabot.yml`) opens weekly pull requests
+for dependency updates.
+
 ## Scripts
 
 Run from the repository root.
 
-| Command                        | What it does                                                                 |
-| ------------------------------ | ---------------------------------------------------------------------------- |
-| `pnpm dev:web`                 | Start the web app at http://localhost:5173                                   |
-| `pnpm dev:api`                 | Start the API with auto-restart on file changes                              |
-| `pnpm db:generate`             | Create a migration from changes in `apps/api/src/db/`                        |
-| `pnpm db:migrate`              | Apply pending migrations to the database                                     |
-| `pnpm set-role <email> <role>` | Make an account `user`, `moderator`, or `admin`                              |
-| `pnpm recompute-scores`        | Rebuild vote weights and post scores after changing the weights              |
-| `pnpm test`                    | Run the web tests, and the API tests against the `perspective_test` database |
-| `pnpm build`                   | Build the web app for production into `apps/web/dist`                        |
-| `pnpm typecheck`               | Type-check every package                                                     |
-| `pnpm lint`                    | Lint the whole repository                                                    |
-| `pnpm format`                  | Format all files with Prettier                                               |
-| `pnpm format:check`            | Report unformatted files without changing them                               |
+| Command                        | What it does                                                               |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `pnpm dev:web`                 | Start the web app at http://localhost:5173                                 |
+| `pnpm dev:api`                 | Start the API with auto-restart on file changes                            |
+| `pnpm db:generate`             | Create a migration from changes in `apps/api/src/db/`                      |
+| `pnpm db:migrate`              | Apply pending migrations to the database                                   |
+| `pnpm set-role <email> <role>` | Make an account `user`, `moderator`, or `admin`                            |
+| `pnpm recompute-scores`        | Rebuild vote weights and post scores after changing the weights            |
+| `pnpm test`                    | Run the shared and web tests, and the API tests against `perspective_test` |
+| `pnpm build`                   | Build the web app for production into `apps/web/dist`                      |
+| `pnpm typecheck`               | Type-check every package                                                   |
+| `pnpm lint`                    | Lint the whole repository                                                  |
+| `pnpm format`                  | Format all files with Prettier                                             |
+| `pnpm format:check`            | Report unformatted files without changing them                             |
 
 ## Commit messages
 

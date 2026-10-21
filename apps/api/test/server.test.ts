@@ -3,6 +3,7 @@ import type { ErrorResponse } from "@perspective/shared";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
+import { env } from "../src/config/env";
 import { get } from "./helpers";
 
 let app: FastifyInstance;
@@ -63,6 +64,34 @@ describe("errors", () => {
   });
 });
 
+describe("client address", () => {
+  const forwarded = { "x-forwarded-for": "198.51.100.7, 203.0.113.9" };
+
+  it("ignores X-Forwarded-For when no proxy is trusted", async () => {
+    app.get("/test/ip", (request) => ({ ip: request.ip }));
+    const response = await app.inject({ url: "/test/ip", headers: forwarded });
+    expect(response.json()).toEqual({ ip: "127.0.0.1" });
+  });
+
+  it("takes the address our trusted proxy saw", async () => {
+    // Injected requests come from 127.0.0.1, standing in for the proxy.
+    env.TRUST_PROXY = "127.0.0.1";
+    const proxied = await buildApp().finally(() => {
+      env.TRUST_PROXY = undefined;
+    });
+    proxied.get("/test/ip", (request) => ({ ip: request.ip }));
+
+    const response = await proxied.inject({
+      url: "/test/ip",
+      headers: forwarded,
+    });
+    // 203.0.113.9 isn't a trusted proxy, so anything left of it could
+    // have been written by the client and is ignored.
+    expect(response.json()).toEqual({ ip: "203.0.113.9" });
+    await proxied.close();
+  });
+});
+
 describe("startup", () => {
   // Phase 0 promise: the API refuses to start with a missing or invalid
   // setting, and says which one without printing its value.
@@ -85,5 +114,23 @@ describe("startup", () => {
     expect(result.stderr).toContain("DATABASE_URL");
     expect(result.stderr).toContain("PORT");
     expect(result.stderr).not.toContain("not-a-port");
+  });
+
+  it("refuses to run in production without a way to send email", () => {
+    const result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", "-e", "await import('./src/config/env.ts')"],
+      {
+        encoding: "utf8",
+        env: {
+          PATH: process.env.PATH,
+          SYSTEMROOT: process.env.SYSTEMROOT,
+          NODE_ENV: "production",
+          DATABASE_URL: "postgres://app:secret@localhost:5432/perspective",
+        },
+      },
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("SMTP_URL");
   });
 });

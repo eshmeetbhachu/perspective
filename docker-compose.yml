@@ -1,4 +1,6 @@
 # Local development services. Start with `docker compose up -d`.
+# `docker compose --profile app up -d --build` also runs the production
+# images (API, web, and a fake inbox) at http://localhost:4173.
 name: perspective
 
 services:
@@ -25,6 +27,35 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    profiles: [app]
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://perspective_app:${APP_PASSWORD}@postgres:5432/perspective
+      MIGRATION_DATABASE_URL: postgres://perspective_migrator:${MIGRATOR_PASSWORD}@postgres:5432/perspective
+      WEB_ORIGIN: http://localhost:4173
+      # Requests reach the API through the web container, on Docker's
+      # private network.
+      TRUST_PROXY: uniquelocal
+      SMTP_URL: smtp://mailpit:1025
+      EMAIL_FROM: Perspective <no-reply@perspective.local>
+
+  web:
+    profiles: [app]
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    depends_on: [api]
+    ports:
+      - "127.0.0.1:4173:8080"
+
+  # Catches every email the API sends; read them at http://localhost:8025.
+  mailpit:
+    profiles: [app]
+    image: axllent/mailpit:v1.29
+    ports:
+      - "127.0.0.1:8025:8025"
 
 volumes:
   pgdata:

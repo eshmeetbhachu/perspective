@@ -18,7 +18,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "pnpm -r test",
+    "test": "pnpm -r --filter=!@perspective/e2e test",
     "test:coverage": "pnpm --filter @perspective/api test:coverage",
     "build": "pnpm --filter @perspective/web build",
     "test:e2e": "pnpm --filter @perspective/e2e test"

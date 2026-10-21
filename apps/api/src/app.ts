@@ -29,7 +29,10 @@ import { errorHandler, notFoundHandler } from "./plugins/error-handler";
 // Builds the app without starting it, so tests can call buildApp() and send
 // fake requests with app.inject() (Phase 7). server.ts does the listening.
 export async function buildApp(): Promise<FastifyInstance> {
-  const app = Fastify({ logger: loggerOptions });
+  const app = Fastify({
+    logger: loggerOptions,
+    trustProxy: env.TRUST_PROXY ?? false,
+  });
 
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);

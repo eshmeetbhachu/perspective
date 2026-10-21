@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Throwaway passwords for a database that only lives for this run.
+      POSTGRES_SUPERUSER_PASSWORD: ci-superuser
+      MIGRATOR_PASSWORD: ci-migrator
+      APP_PASSWORD: ci-app
+      DATABASE_URL: postgres://perspective_app:ci-app@127.0.0.1:5432/perspective
+      MIGRATION_DATABASE_URL: postgres://perspective_migrator:ci-migrator@127.0.0.1:5432/perspective
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # The same Postgres and init script as local development.
+      - run: docker compose up -d --wait
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm audit --audit-level high
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm --filter @perspective/e2e exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
+
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -f apps/api/Dockerfile .
+      - run: docker build -f apps/web/Dockerfile .
