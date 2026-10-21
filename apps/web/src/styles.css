@@ -120,28 +120,41 @@ a {
   font-size: 1.5rem;
 }
 
-/* The artwork is as wide as the window and cropped from the top, so the
-   heading sits on its cream sky. Positions are fractions of the artwork. */
+/* The artwork is as wide as the window. Everything in the hero is anchored
+   to its bottom and sized in vw, so it scales with the artwork. On windows
+   that are short for their width, the hero shrinks to the window height and
+   only the empty cream sky at the top is trimmed, never the figure or stairs. */
 .hero {
   position: relative;
-  aspect-ratio: 1047 / 581;
+  height: clamp(50vw, 100vh, 55.5vw);
+  height: clamp(50vw, 100svh, 55.5vw);
   overflow: hidden;
 }
 
-/* Placed as in the design: slightly oversized and nudged up and left. */
+/* Placed as in the design: slightly oversized and nudged left. */
 .hero-art {
   position: absolute;
-  top: -13.8%;
+  bottom: -0.92vw;
   left: -2.48%;
   width: 103.4%;
   max-width: none;
 }
 
-.hero-heading {
+/* Heading and buttons move as one block, anchored at the buttons' bottom
+   edge: if the buttons need more height on small screens, the heading moves
+   up into the sky instead of overlapping them. */
+.hero-copy {
   position: absolute;
-  top: 20.5%;
-  right: 5.4%;
+  right: 5.3%;
+  bottom: 27.55vw;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   width: 47.3%;
+}
+
+.hero-heading {
+  width: 100%;
   margin: 0;
   line-height: 0;
 }
@@ -152,11 +165,9 @@ a {
 }
 
 .hero-actions {
-  position: absolute;
-  top: 45.6%;
-  right: 5.25%;
   display: flex;
   gap: 1.45vw;
+  margin-top: 1.77vw;
 }
 
 /* Two classes, so these sizes win over the general .button rule below. */
@@ -175,6 +186,7 @@ a {
 
 @media (max-width: 720px) {
   .hero {
+    height: auto;
     aspect-ratio: 4 / 5;
   }
 
@@ -186,16 +198,16 @@ a {
     object-position: 24% 100%;
   }
 
-  .hero-heading {
+  .hero-copy {
     top: 15%;
     right: 6%;
+    bottom: auto;
     width: 88%;
   }
 
   .hero-actions {
-    top: 36%;
-    right: 6%;
     gap: 10px;
+    margin-top: 14px;
   }
 
   .hero .hero-button {

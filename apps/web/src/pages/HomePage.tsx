@@ -14,16 +14,18 @@ export function HomePage() {
     <>
       <section className="hero">
         <img className="hero-art" src={heroArt} alt="" />
-        <h1 className="hero-heading">
-          <img src={heading} alt="Before you take a side, see every side" />
-        </h1>
-        <div className="hero-actions">
-          <a href="#questions" className="button hero-button">
-            Explore questions
-          </a>
-          <Link to="/ask" className="button hero-button">
-            Ask a question
-          </Link>
+        <div className="hero-copy">
+          <h1 className="hero-heading">
+            <img src={heading} alt="Before you take a side, see every side" />
+          </h1>
+          <div className="hero-actions">
+            <a href="#questions" className="button hero-button">
+              Explore questions
+            </a>
+            <Link to="/ask" className="button hero-button">
+              Ask a question
+            </Link>
+          </div>
         </div>
       </section>
 
