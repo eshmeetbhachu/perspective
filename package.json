@@ -11,6 +11,7 @@
     "dev:web": "pnpm --filter @perspective/web dev",
     "db:generate": "pnpm --filter @perspective/api db:generate",
     "db:migrate": "pnpm --filter @perspective/api db:migrate",
+    "db:setup-roles": "pnpm --filter @perspective/api db:setup-roles",
     "set-role": "pnpm --filter @perspective/api set-role",
     "recompute-scores": "pnpm --filter @perspective/api recompute-scores",
     "seed": "pnpm --filter @perspective/api seed",

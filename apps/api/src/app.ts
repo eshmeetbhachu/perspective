@@ -25,13 +25,16 @@ import { voteRoutes } from "./modules/votes/routes";
 import { loadSession } from "./plugins/auth";
 import { checkOrigin } from "./plugins/csrf";
 import { errorHandler, notFoundHandler } from "./plugins/error-handler";
+import { requireProxySecret } from "./plugins/proxy-secret";
 
 // Builds the app without starting it, so tests can call buildApp() and send
 // fake requests with app.inject() (Phase 7). server.ts does the listening.
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
     logger: loggerOptions,
-    trustProxy: env.TRUST_PROXY ?? false,
+    // With ORIGIN_SECRET, every request has come through the website's proxy,
+    // which overwrites X-Forwarded-For with the visitor's address.
+    trustProxy: env.ORIGIN_SECRET ? true : (env.TRUST_PROXY ?? false),
   });
 
   app.setErrorHandler(errorHandler);
@@ -58,8 +61,14 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.decorateRequest("user", null);
   app.decorateRequest("sessionId", null);
+  app.addHook("onRequest", requireProxySecret);
   app.addHook("onRequest", checkOrigin);
   app.addHook("onRequest", loadSession);
+  // Responses depend on who is asking, so no shared cache (CDN) may keep them.
+  app.addHook("onSend", async (_request, reply) => {
+    if (!reply.hasHeader("cache-control"))
+      reply.header("cache-control", "no-store");
+  });
 
   await app.register(healthRoutes);
   await app.register(authRoutes);

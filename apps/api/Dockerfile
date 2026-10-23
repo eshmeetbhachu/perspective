@@ -27,6 +27,6 @@ COPY --from=build /repo/apps/api/dist dist
 COPY --from=build /repo/apps/api/migrations migrations
 USER node
 EXPOSE 3000
-HEALTHCHECK CMD wget -qO- http://127.0.0.1:3000/health || exit 1
+HEALTHCHECK CMD wget -qO- "http://127.0.0.1:${PORT}/health" || exit 1
 # Migrate first; then the server starts without the migrator's password (D19).
 CMD ["sh", "-c", "node --enable-source-maps dist/migrate.js && exec env -u MIGRATION_DATABASE_URL node --enable-source-maps dist/server.js"]

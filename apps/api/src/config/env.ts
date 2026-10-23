@@ -16,7 +16,11 @@ const EnvSchema = z
     // Connects as perspective_app, the row-access-only role (D19).
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     // The only origin allowed to make state-changing requests (CSRF, CORS).
-    WEB_ORIGIN: z.url().default("http://localhost:5173"),
+    // Reduced to scheme + host, so "https://site.app/" still matches.
+    WEB_ORIGIN: z
+      .url()
+      .default("http://localhost:5173")
+      .transform((url) => new URL(url).origin),
     // Google sign-in is switched off until both are set.
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
@@ -29,6 +33,10 @@ const EnvSchema = z
     // X-Forwarded-For; otherwise anyone could fake their IP and dodge rate
     // limits. Unset means no proxy is trusted.
     TRUST_PROXY: z.string().min(1).optional(),
+    // Set when the website's proxy (Vercel) adds this value as the
+    // X-Origin-Secret header. Every other request is refused, which is what
+    // makes the visitor IP that the proxy reports trustworthy (D61).
+    ORIGIN_SECRET: z.string().min(32).optional(),
     // e.g. smtps://user:password@smtp.gmail.com:465. Without it, emails are
     // only written to the log.
     SMTP_URL: z.url({ protocol: /^smtps?$/ }).optional(),
@@ -40,7 +48,11 @@ const EnvSchema = z
       path: ["SMTP_URL"],
       message: "Production must be able to send emails",
     },
-  );
+  )
+  .refine((env) => !(env.TRUST_PROXY && env.ORIGIN_SECRET), {
+    path: ["TRUST_PROXY"],
+    message: "Use either TRUST_PROXY or ORIGIN_SECRET, not both",
+  });
 
 export type Env = z.infer<typeof EnvSchema>;
 

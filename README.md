@@ -181,6 +181,9 @@ docker compose --profile app up -d --build
 The API container applies pending migrations before it starts. Stop everything
 except Postgres with `docker compose --profile app stop api web mailpit`.
 
+Deploying to free hosting is described step by step in
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 ## Continuous integration
 
 Every push runs `.github/workflows/ci.yml` on GitHub: formatting, type checks,
