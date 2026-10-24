@@ -86,7 +86,7 @@ you use a domain you own (see "Later").
 ## 5. Check it
 
 - Sign up on the live site and confirm the email arrives.
-- The first request after 15 idle minutes takes about 30-60 seconds. Render
+- The first visit after 15 idle minutes takes about 30-60 seconds (measured: 42 s). Render
   doesn't wake the API for requests that arrive through Vercel (it answers
   502 at once), so the website pings `VITE_API_WAKE_URL` directly and retries
   502s for up to two minutes (D64).

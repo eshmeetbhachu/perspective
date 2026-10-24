@@ -292,11 +292,14 @@ Order decided in D25.
 
 - [x] Dockerfiles for API and web
 - [x] GitHub Actions CI: lint, type-check, test, audit on every push
-- [ ] Deploy API + managed Postgres + static frontend
+- [x] Deploy API + managed Postgres + static frontend (live at https://perspective-lilac.vercel.app)
 - [x] Migrations run automatically on deploy
 - [x] Configure `trustProxy` so rate limits and session IPs see the real client address behind the load balancer
-- [ ] Production email provider for verification and password-reset emails (moved from Phase 1)
-- [ ] Domain, HTTPS, backups, error monitoring
+- [x] Production email provider for verification and password-reset emails (moved from Phase 1)
+- [x] HTTPS everywhere (Vercel and Render certificates, HSTS) on the free `vercel.app` address
+- [ ] Custom domain (optional; needs a domain, e.g. from the GitHub Student Pack)
+- [ ] Backups beyond Neon's free 6-hour history, with a tested restore
+- [ ] Error monitoring beyond the Render and Vercel logs
 - [x] 🟡 Hosting provider: Vercel (web + proxy), Render (API), Neon (Postgres), Brevo (email), all free without a card (D63); steps in [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ### Phase 9: Scalability (the learning goal)
