@@ -143,3 +143,52 @@ makes the expiry only a safety net, so the longer one is kept.
   cache entry lives. Caching helps the head, not the tail.
 - Next: run several API instances, which first needs sessions and rate limits
   that work across instances.
+
+## 4. State that works across instances
+
+Before running several API instances, every piece of per-instance state was
+checked:
+
+- **Sessions** were already in Postgres, so every instance sees every session.
+  Moving them to Redis would save a 0.06 ms query (1.4 s of database time in a
+  whole 150 visits/s run): not worth the change, so they stay.
+- **Rate limits** were counted in each instance's memory: with 4 instances an
+  attacker would get 4 × 10 login attempts. They are now counted in Redis.
+  A test drives two app instances alternately and checks the 11th attempt is
+  refused (and fails with in-memory counting). If Redis is down the limits are
+  skipped rather than blocking every login; the daily limits on questions,
+  posts and challenges are counted in Postgres and still apply.
+- Daily limits, OAuth sign-in state and the cache were already shared.
+
+## 5. Several instances behind a load balancer
+
+nginx (`load/nginx.conf`) sends each request to the instance with the fewest
+open requests and adds the visitor to `X-Forwarded-For`. Each instance has
+1 CPU. Two lab mistakes were found on the way and are worth knowing:
+recreating the load balancer made Docker Compose quietly scale the API back
+to one instance (fixed with `--no-deps`), and the first nginx config (one
+worker, 8,192 connections) ran out of connections before the API did: the
+load balancer itself became the bottleneck.
+
+Traffic at about 80% of each setup's expected capacity:
+
+| Instances | Offered      | Requests/s   | p95    | Failed | Requests per API CPU-second |
+| --------- | ------------ | ------------ | ------ | ------ | --------------------------- |
+| 1         | 80 visits/s  | 588          | 164 ms | 0%     | 609                         |
+| 2         | 160 visits/s | 979 (+66%)   | 9.8 s  | 0%     | 499                         |
+| 4         | 320 visits/s | 1,178 (+20%) | 31 s   | 14.6%  | 305                         |
+
+CPU during a 4-instance run: API 4 × 1.0, **Postgres 4.5**, k6 1.4, nginx 0.5,
+Redis 0.2 cores: about 11 of the laptop's 16 threads, plus Windows.
+
+**Findings**
+
+- Adding an instance adds capacity: 1 → 2 gave +66%.
+- Beyond that the laptop is the limit. The instances, the database, the load
+  generator and the load balancer share one machine whose 16 threads include
+  8 slower efficiency cores, so each instance gets less real work done per
+  "CPU" (609 → 305 requests per CPU-second). In production each instance
+  would have its own machine. This lab can't show linear scaling, and the
+  numbers say so instead of hiding it.
+- The database is now the largest single consumer (4.5 cores): the next
+  bottleneck, which is what a read replica is for.

@@ -94,6 +94,15 @@ services:
       SMTP_URL: smtp://mailpit:1025
       REDIS_URL: redis://redis:6379
 
+  # Spreads requests over the api-load replicas
+  # (`docker compose --profile load up -d --scale api-load=4`).
+  lb-load:
+    profiles: [load]
+    image: nginx:1.29-alpine
+    depends_on: [api-load]
+    volumes:
+      - ./load/nginx.conf:/etc/nginx/nginx.conf:ro
+
   k6:
     profiles: [load]
     image: grafana/k6:1.0.0

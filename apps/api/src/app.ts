@@ -7,7 +7,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
-import { serveFromCache, storeInCache } from "./cache";
+import { redis, serveFromCache, storeInCache } from "./cache";
 import { env } from "./config/env";
 import { loggerOptions } from "./config/logger";
 import { AppError } from "./errors";
@@ -52,6 +52,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(cookie);
   await app.register(rateLimit, {
     global: false,
+    // Counted in Redis when there is one, so the limits hold across API
+    // instances instead of multiplying with them. If Redis is down the limits
+    // are skipped; the daily limits are counted in Postgres anyway (D68).
+    redis: redis ?? undefined,
+    nameSpace: "rate-limit:",
+    skipOnError: true,
     errorResponseBuilder: (_request, context) =>
       new AppError(
         429,
