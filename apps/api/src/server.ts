@@ -2,6 +2,7 @@ import { buildApp } from "./app";
 import { redis } from "./cache";
 import { env } from "./config/env";
 import { pool, replicaPool } from "./db/client";
+import { startMetricsServer } from "./telemetry";
 
 // If shutdown takes longer than this, a request or connection is stuck:
 // exit anyway rather than hang forever.
@@ -24,6 +25,8 @@ replicaPool?.on("error", (err) => {
 redis?.on("error", (err) => {
   app.log.warn({ err }, "redis connection error");
 });
+
+startMetricsServer();
 
 try {
   await app.listen({ host: env.HOST, port: env.PORT });

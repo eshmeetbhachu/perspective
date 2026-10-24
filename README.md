@@ -184,6 +184,22 @@ except Postgres with `docker compose --profile app stop api web mailpit`.
 Deploying to free hosting is described step by step in
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
+## Load-testing lab (Phase 9)
+
+Scaling experiments run locally against ~4.4 million generated rows in a
+separate `perspective_load` database; results and how to reproduce them are
+in [docs/SCALING.md](docs/SCALING.md).
+
+```sh
+pnpm load:migrate && pnpm load:seed && pnpm load:fixtures
+docker compose --profile load up -d --build --scale api-load=2
+docker compose --profile load run --rm k6 run -e API_URL=http://lb-load:8080 -e RATE=50 /load/k6/browse.js
+```
+
+Grafana dashboards: <http://localhost:3001>. Traces (start with
+`LOAD_TRACING=1`): <http://localhost:16686>. Add `LOAD_REPLICA=1` to read from
+the replica.
+
 ## Continuous integration
 
 Every push runs `.github/workflows/ci.yml` on GitHub: formatting, type checks,

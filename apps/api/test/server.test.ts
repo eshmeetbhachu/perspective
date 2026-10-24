@@ -4,6 +4,7 @@ import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
 import { env } from "../src/config/env";
+import { metrics } from "../src/telemetry";
 import { get } from "./helpers";
 
 let app: FastifyInstance;
@@ -136,6 +137,17 @@ describe("responses", () => {
   it("are never stored by shared caches", async () => {
     const response = await get(app, "/health");
     expect(response.headers["cache-control"]).toBe("no-store");
+  });
+});
+
+describe("metrics", () => {
+  it("time requests by route pattern, not by URL", async () => {
+    await get(app, "/questions/no-such-question");
+    const text = await metrics.getSingleMetricAsString(
+      "http_request_duration_seconds",
+    );
+    expect(text).toContain('route="/questions/:slug"');
+    expect(text).not.toContain("no-such-question");
   });
 });
 

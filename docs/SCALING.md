@@ -296,3 +296,48 @@ primary's and 26% of the replica's query time, from about 4% of requests.
 **Revisit when** search passes about 40% of database time after caching, or
 the product needs what Postgres full-text search can't do well: typo
 tolerance, filters and facets, or ranking tuned per field.
+
+## 9. Observability
+
+- **Metrics** (`prom-client`): request time by route pattern (not by URL, so
+  ids don't each create a time series), cache hits and misses, which database
+  answered cacheable reads, and Node's own CPU, memory and event-loop delay.
+  They are served on a private port (`METRICS_PORT`) that is never published,
+  so the public API exposes nothing new. Prometheus discovers every API
+  replica through Docker's DNS.
+- **Dashboard**: Grafana at http://localhost:3001 (load profile), provisioned
+  from `load/observability/grafana/perspective-api.json`: requests and p95 by
+  route, 5xx share, cache hit rate, replica vs primary reads, and CPU, event
+  loop delay and memory per instance.
+- **Tracing** (OpenTelemetry → Jaeger at http://localhost:16686): one span
+  per request, its handler, every Postgres query and every Redis command, so
+  one slow request can be followed across the system. For example, a column
+  request: session lookup 1.8 ms, Redis 1.6 ms, replica position check 0.8 ms,
+  question id 1.0 ms, column query 6.4 ms, 14 ms in total. It is loaded before
+  the app (`node --import ./dist/instrumentation.js`) because the Postgres and
+  Redis libraries must be patched before they are imported.
+
+**What tracing costs** (one instance, same traffic, API CPU measured by
+Prometheus over each run):
+
+| Tracing       | CPU per request | Handled of ~450 req/s offered | p95    |
+| ------------- | --------------- | ----------------------------- | ------ |
+| Off           | **1.65 ms**     | 443                           | 119 ms |
+| Every request | 3.39 ms (2×)    | 291                           | 30 s   |
+| 10% sampled   | 2.44 ms         | 390                           | 8.9 s  |
+| 1% sampled    | 2.36 ms         | 401                           | 5.0 s  |
+
+(These runs had both databases still capped at 1 CPU from step 7, which
+affects the latencies but not the API's CPU per request; `docker update
+--cpus 0` turned out not to remove a limit, recreating the containers does.)
+
+**Findings**
+
+- Tracing every request doubles the API's CPU cost per request.
+- Sampling barely helps: 1% costs almost as much as 10%. About 0.7 ms per
+  request is the instrumentation itself (wrapping every query and Redis call
+  and carrying the trace context through every async step), whether or not
+  the request is recorded.
+- So tracing stays off by default and is switched on to investigate, at a low
+  sample rate, with about 40% more API CPU budgeted. Metrics are cheap and
+  always on in the lab.

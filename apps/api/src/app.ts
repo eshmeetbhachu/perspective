@@ -27,6 +27,7 @@ import { loadSession } from "./plugins/auth";
 import { checkOrigin } from "./plugins/csrf";
 import { errorHandler, notFoundHandler } from "./plugins/error-handler";
 import { requireProxySecret } from "./plugins/proxy-secret";
+import { recordRequests } from "./telemetry";
 
 // Builds the app without starting it, so tests can call buildApp() and send
 // fake requests with app.inject() (Phase 7). server.ts does the listening.
@@ -37,6 +38,8 @@ export async function buildApp(): Promise<FastifyInstance> {
     // which overwrites X-Forwarded-For with the visitor's address.
     trustProxy: env.ORIGIN_SECRET ? true : (env.TRUST_PROXY ?? false),
   });
+
+  recordRequests(app);
 
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);

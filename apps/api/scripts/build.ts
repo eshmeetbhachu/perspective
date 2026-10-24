@@ -4,7 +4,12 @@ import pkg from "../package.json" with { type: "json" };
 // Bundles our code, including @perspective/shared (TypeScript source, D17),
 // into plain JavaScript. npm packages stay as imports from node_modules.
 await build({
-  entryPoints: ["src/server.ts", "src/migrate.ts", "src/worker.ts"],
+  entryPoints: [
+    "src/server.ts",
+    "src/migrate.ts",
+    "src/worker.ts",
+    "src/instrumentation.ts",
+  ],
   bundle: true,
   platform: "node",
   target: "node22",

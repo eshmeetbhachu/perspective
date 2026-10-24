@@ -114,6 +114,12 @@ services:
       TRUST_PROXY: uniquelocal
       SMTP_URL: smtp://mailpit:1025
       REDIS_URL: redis://redis:6379
+      METRICS_PORT: "9464"
+      # LOAD_TRACING=1 sends traces to Jaeger; LOAD_TRACE_RATIO samples a share.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${LOAD_TRACING:+http://jaeger:4318}
+      NODE_OPTIONS: ${LOAD_TRACING:+--import ./dist/instrumentation.js}
+      OTEL_TRACES_SAMPLER: parentbased_traceidratio
+      OTEL_TRACES_SAMPLER_ARG: ${LOAD_TRACE_RATIO:-1}
 
   # Read replica of `postgres`: copies it on first start, then follows its
   # write-ahead log. No host port; only the load-test API reads from it.
@@ -143,6 +149,37 @@ services:
     depends_on: [api-load]
     volumes:
       - ./load/nginx.conf:/etc/nginx/nginx.conf:ro
+
+  # Observability for the lab: http://localhost:3001 (Grafana dashboards),
+  # http://localhost:16686 (Jaeger traces), http://localhost:9090 (Prometheus).
+  prometheus:
+    profiles: [load]
+    image: prom/prometheus:v3.5.0
+    volumes:
+      - ./load/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  jaeger:
+    profiles: [load]
+    image: jaegertracing/jaeger:2.5.0
+    ports:
+      - "127.0.0.1:16686:16686"
+
+  grafana:
+    profiles: [load]
+    image: grafana/grafana:12.0.0
+    depends_on: [prometheus, jaeger]
+    environment:
+      # Local only (bound to 127.0.0.1): open the dashboards without a login.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./load/observability/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./load/observability/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./load/observability/grafana/perspective-api.json:/etc/grafana/provisioning/dashboards/perspective-api.json:ro
+    ports:
+      - "127.0.0.1:3001:3000"
 
   k6:
     profiles: [load]

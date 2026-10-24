@@ -45,6 +45,11 @@ const EnvSchema = z
     EMAIL_FROM: z.string().min(1).default("Perspective <no-reply@localhost>"),
     // Optional response cache (Phase 9). Without it nothing is cached.
     REDIS_URL: z.url({ protocol: /^rediss?$/ }).optional(),
+    // Optional observability (Phase 9): a private port for Prometheus, and
+    // where to send traces (the standard OpenTelemetry variables).
+    METRICS_PORT: z.coerce.number().int().min(1).max(65_535).optional(),
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
+    OTEL_SERVICE_NAME: z.string().min(1).default("perspective-api"),
   })
   .refine(
     (env) => env.NODE_ENV !== "production" || env.SMTP_URL !== undefined,

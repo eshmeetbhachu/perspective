@@ -2,6 +2,7 @@ import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from "fastify";
 import { Redis } from "ioredis";
 import { env } from "./config/env";
 import { db, type Executor, pool, replicaDb, replicaPool } from "./db/client";
+import { cachedRouteReads, cacheLookups } from "./telemetry";
 
 // Shared cache for responses that are identical for every logged-out visitor
 // (Phase 9, D67). Without REDIS_URL nothing is cached.
@@ -126,9 +127,13 @@ export async function serveFromCache(
   }
 
   if (cached === null) {
-    if (request.cacheKey) reply.header("x-cache", "miss");
+    if (request.cacheKey) {
+      cacheLookups.inc({ result: "miss" });
+      reply.header("x-cache", "miss");
+    }
     return;
   }
+  cacheLookups.inc({ result: "hit" });
   // Already serialised JSON: sent as is, skipping the database and the
   // serialiser.
   request.cacheKey = null;
@@ -140,7 +145,9 @@ export async function serveFromCache(
 
 // Which database a cached route reads from (D71).
 export function readerFor(request: FastifyRequest): Executor {
-  return request.readFromReplica && replicaDb ? replicaDb : db;
+  const reader = request.readFromReplica && replicaDb ? replicaDb : db;
+  cachedRouteReads.inc({ database: reader === db ? "primary" : "replica" });
+  return reader;
 }
 
 // onSend: store the serialised body of a successful miss.
