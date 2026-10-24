@@ -9,6 +9,10 @@ updates:
       # One pull request for all minor and patch updates, instead of dozens.
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Node's type definitions follow the Node version we run (22, .nvmrc).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -17,3 +21,7 @@ updates:
     directories: [/apps/api, /apps/web]
     schedule:
       interval: weekly
+    ignore:
+      # Stay on Node 22 LTS; moving to the next LTS is a deliberate change.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]

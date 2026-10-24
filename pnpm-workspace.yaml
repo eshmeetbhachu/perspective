@@ -7,3 +7,5 @@ allowBuilds:
 overrides:
   # drizzle-kit's config loader pins an esbuild with a known advisory.
   "@esbuild-kit/core-utils>esbuild": ^0.25.0
+  # eslint-plugin-react-hooks pins a zod with a known advisory.
+  "eslint-plugin-react-hooks>zod": ^4.6.6
