@@ -217,7 +217,7 @@ When a user marks a post helpful, the weight depends on the voter's stance compa
 - [x] Secrets only in environment variables, never committed; `.env.example` committed instead
 - [x] Database user with least privileges (no superuser for the app)
 - [x] Logs never contain passwords, tokens, or full emails (the development mailer prints email links on purpose; production never logs them)
-- [ ] `pnpm audit` + Dependabot in CI
+- [x] `pnpm audit` + Dependabot in CI
 - [ ] HTTPS everywhere in production; automated database backups, with a tested restore
 
 ---
@@ -290,7 +290,7 @@ Order decided in D25.
 ### Phase 8: Deployment
 
 - [x] Dockerfiles for API and web
-- [ ] GitHub Actions CI: lint, type-check, test, audit on every push
+- [x] GitHub Actions CI: lint, type-check, test, audit on every push
 - [ ] Deploy API + managed Postgres + static frontend
 - [x] Migrations run automatically on deploy
 - [x] Configure `trustProxy` so rate limits and session IPs see the real client address behind the load balancer
