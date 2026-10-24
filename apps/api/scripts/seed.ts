@@ -70,17 +70,6 @@ function uuidv7At(date: Date): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-async function insertInBatches<T extends Record<string, unknown>>(
-  label: string,
-  rows: T[],
-  insert: (batch: T[]) => Promise<unknown>,
-) {
-  for (let i = 0; i < rows.length; i += 1000) {
-    await insert(rows.slice(i, i + 1000));
-  }
-  console.log(`  ${String(rows.length).padStart(7)} ${label}`);
-}
-
 // --- Content ------------------------------------------------------------
 
 const NAMES = [
@@ -183,6 +172,45 @@ const OBJECTS = [
   "plastic packaging",
   "open-source software",
 ];
+const PLACES = [
+  "in big cities",
+  "in rural areas",
+  "in public schools",
+  "in universities",
+  "in hospitals",
+  "in small businesses",
+  "in local councils",
+  "in developing countries",
+  "across Europe",
+  "in India",
+  "in the United States",
+  "in South America",
+  "in Africa",
+  "in Southeast Asia",
+  "in coastal towns",
+  "on social media",
+  "in sports",
+  "in the military",
+  "in prisons",
+  "in public transport",
+  "in national parks",
+  "in tech companies",
+  "in newsrooms",
+  "in elections",
+  "for teenagers",
+];
+const TIMEFRAMES = [
+  "by 2030",
+  "within five years",
+  "next year",
+  "permanently",
+  "as a trial",
+  "during emergencies",
+  "on weekends",
+  "for everyone",
+  "right now",
+  "within a decade",
+];
 
 const POST_TITLES: Record<Stance, string[]> = {
   for: [
@@ -279,78 +307,64 @@ async function clear() {
 
 // --- Seed -----------------------------------------------------------------
 
-async function seed(userCount: number, questionCount: number) {
-  const started = Date.now();
-  const now = new Date();
-  const since = new Date(now.getTime() - 90 * DAY_MS);
-  const passwordHash = await hashPassword("seed-password-123");
-  const run = Date.now().toString(36).slice(-4);
-  console.log(
-    `Seeding ${String(userCount)} users and ${String(questionCount)} questions…`,
-  );
+// How many users take a stance on a question. Real sites are lopsided: most
+// questions get a handful of people, a few get thousands (a Pareto tail).
+const participantCount = (userCount: number) =>
+  Math.min(userCount, 3000, Math.floor(6 / Math.random() ** (1 / 1.3)));
 
-  const userRows = Array.from({ length: userCount }, (_, i) => {
-    const createdAt = between(since, new Date(now.getTime() - 2 * DAY_MS));
-    const username = `${pick(NAMES)}_${run}${String(i)}`.slice(0, 20);
-    return {
-      id: uuidv7At(createdAt),
-      username,
-      email: `${username}@${SEED_DOMAIN}`,
-      passwordHash,
-      emailVerifiedAt: createdAt,
-      createdAt,
-    };
-  });
-  await insertInBatches("users", userRows, (batch) =>
-    db.insert(users).values(batch),
-  );
+// k distinct items without copying a large array.
+function sample<T>(items: readonly T[], k: number): T[] {
+  if (k * 2 >= items.length) {
+    return [...items].sort(() => Math.random() - 0.5).slice(0, k);
+  }
+  const picked = new Set<T>();
+  while (picked.size < k) picked.add(pick(items));
+  return [...picked];
+}
 
-  const takenSlugs = new Set(
-    (await db.select({ slug: questions.slug }).from(questions)).map(
-      (q) => q.slug,
-    ),
-  );
-  const questionRows = Array.from({ length: questionCount }, (_, i) => {
-    const title =
-      QUESTIONS[i] ??
-      `Should ${pick(SUBJECTS)} ${pick(ACTIONS)} ${pick(OBJECTS)}?`;
-    const base = slugify(title);
-    let slug = base;
-    for (let n = 2; takenSlugs.has(slug); n++) slug = `${base}-${String(n)}`;
-    takenSlugs.add(slug);
-    const author = pick(userRows);
-    const createdAt = between(author.createdAt, now);
-    return {
-      id: uuidv7At(createdAt),
-      title,
-      slug,
-      description: chance(0.6) ? paragraph(1, 3) : "",
-      createdBy: author.id,
-      createdAt,
-    };
-  });
-  await insertInBatches("questions", questionRows, (batch) =>
-    db.insert(questions).values(batch),
-  );
+interface SeedUser {
+  id: string;
+  createdAt: Date;
+}
+type SeedQuestion = typeof questions.$inferInsert & {
+  id: string;
+  createdAt: Date;
+};
+type SeedPost = typeof posts.$inferInsert & { id: string; createdAt: Date };
+type SeedComment = typeof comments.$inferInsert & {
+  id: string;
+  createdAt: Date;
+  depth: number;
+};
 
+const totals = new Map<string, number>();
+
+async function insertCounted<T extends Record<string, unknown>>(
+  label: string,
+  rows: T[],
+  insert: (batch: T[]) => Promise<unknown>,
+) {
+  for (let i = 0; i < rows.length; i += 1000) {
+    await insert(rows.slice(i, i + 1000));
+  }
+  totals.set(label, (totals.get(label) ?? 0) + rows.length);
+}
+
+// Generates and inserts everything that hangs off one chunk of questions,
+// so memory stays flat however many questions are seeded.
+async function seedQuestionChunk(
+  userRows: SeedUser[],
+  chunk: SeedQuestion[],
+  now: Date,
+) {
   const stanceRows: (typeof userStances.$inferInsert)[] = [];
-  const postRows: (typeof posts.$inferInsert & {
-    id: string;
-    createdAt: Date;
-  })[] = [];
+  const postRows: SeedPost[] = [];
   const voteRows: (typeof postVotes.$inferInsert)[] = [];
-  const challengeRows: (typeof challenges.$inferInsert & {
-    id: string;
-    createdAt: Date;
-  })[] = [];
-  const commentRows: (typeof comments.$inferInsert & {
-    id: string;
-    createdAt: Date;
-    depth: number;
-  })[] = [];
+  const challengeRows: (typeof challenges.$inferInsert)[] = [];
+  const commentRows: SeedComment[] = [];
 
-  for (const question of questionRows) {
-    const participants = userRows.filter(() => chance(0.5));
+  for (const question of chunk) {
+    const participants = sample(userRows, participantCount(userRows.length));
     const stances = new Map<string, Stance>();
     for (const user of participants) {
       const stance = randomStance();
@@ -363,10 +377,10 @@ async function seed(userCount: number, questionCount: number) {
       });
     }
 
-    const questionPosts: (typeof postRows)[number][] = [];
+    const questionPosts: SeedPost[] = [];
     for (const user of participants) {
       const stance = stances.get(user.id);
-      if (!stance || !chance(0.3)) continue;
+      if (!stance || !chance(0.25)) continue;
       const createdAt = between(question.createdAt, now);
       const post = {
         id: uuidv7At(createdAt),
@@ -381,11 +395,15 @@ async function seed(userCount: number, questionCount: number) {
       postRows.push(post);
     }
 
+    // Each participant marks a few posts as helpful (0-3, never their own).
     for (const user of participants) {
       const voterStance = stances.get(user.id);
       if (!voterStance) continue;
-      for (const post of questionPosts) {
-        if (post.authorId === user.id || !chance(0.2)) continue;
+      const others = questionPosts.filter((p) => p.authorId !== user.id);
+      for (const post of sample(
+        others,
+        Math.min(others.length, randomInt(4)),
+      )) {
         voteRows.push({
           userId: user.id,
           postId: post.id,
@@ -397,15 +415,14 @@ async function seed(userCount: number, questionCount: number) {
     }
 
     for (const post of questionPosts) {
-      if (!chance(0.15)) continue;
+      if (!chance(0.1)) continue;
       const challengers = participants.filter(
         (u) => u.id !== post.authorId && stances.get(u.id) !== post.stance,
       );
-      const used = new Set<string>();
-      for (let c = 0; c < 1 + randomInt(3) && challengers.length > 0; c++) {
-        const challenger = pick(challengers);
-        if (used.has(challenger.id)) continue;
-        used.add(challenger.id);
+      for (const challenger of sample(
+        challengers,
+        Math.min(challengers.length, 1 + randomInt(3)),
+      )) {
         const createdAt = between(post.createdAt, now);
         const challenge = {
           id: uuidv7At(createdAt),
@@ -417,7 +434,7 @@ async function seed(userCount: number, questionCount: number) {
         };
         challengeRows.push(challenge);
 
-        const thread: (typeof commentRows)[number][] = [];
+        const thread: SeedComment[] = [];
         const speakers = [
           post.authorId,
           challenger.id,
@@ -426,16 +443,18 @@ async function seed(userCount: number, questionCount: number) {
         for (let n = 0; n < randomInt(9); n++) {
           const parent =
             thread.length > 0 && chance(0.7) ? pick(thread) : undefined;
-          const after = parent?.createdAt ?? challenge.createdAt;
-          const createdAt = between(after, now);
+          const commentAt = between(
+            parent?.createdAt ?? challenge.createdAt,
+            now,
+          );
           const comment = {
-            id: uuidv7At(createdAt),
+            id: uuidv7At(commentAt),
             challengeId: challenge.id,
             parentId: parent?.id ?? null,
             authorId: pick(speakers),
             body: pick(COMMENTS),
             depth: parent ? parent.depth + 1 : 1,
-            createdAt,
+            createdAt: commentAt,
           };
           thread.push(comment);
           commentRows.push(comment);
@@ -444,7 +463,7 @@ async function seed(userCount: number, questionCount: number) {
     }
   }
 
-  await insertInBatches("stances", stanceRows, async (batch) => {
+  await insertCounted("stances", stanceRows, async (batch) => {
     await db.insert(userStances).values(batch);
     await db.insert(stanceHistory).values(
       batch.map((s) => ({
@@ -455,29 +474,101 @@ async function seed(userCount: number, questionCount: number) {
       })),
     );
   });
-  await insertInBatches("posts", postRows, (batch) =>
+  await insertCounted("posts", postRows, (batch) =>
     db.insert(posts).values(batch),
   );
-  await insertInBatches("votes", voteRows, (batch) =>
+  await insertCounted("votes", voteRows, (batch) =>
     db.insert(postVotes).values(batch),
   );
-  await insertInBatches("challenges", challengeRows, (batch) =>
+  await insertCounted("challenges", challengeRows, (batch) =>
     db.insert(challenges).values(batch),
   );
   // Parents before children: sorted by time, a reply always follows its parent.
   commentRows.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-  await insertInBatches("comments", commentRows, (batch) =>
+  await insertCounted("comments", commentRows, (batch) =>
     db.insert(comments).values(batch),
   );
+}
+
+async function seed(userCount: number, questionCount: number) {
+  const started = Date.now();
+  const now = new Date();
+  const since = new Date(now.getTime() - 90 * DAY_MS);
+  const passwordHash = await hashPassword("seed-password-123");
+  const run = Date.now().toString(36).slice(-4);
+  console.log(
+    `Seeding ${String(userCount)} users and ${String(questionCount)} questions…`,
+  );
+
+  const userRows = Array.from({ length: userCount }, (_, i) => {
+    const createdAt = between(since, new Date(now.getTime() - 2 * DAY_MS));
+    const username = `${pick(NAMES).slice(0, 8)}_${run}${String(i)}`;
+    return {
+      id: uuidv7At(createdAt),
+      username,
+      email: `${username}@${SEED_DOMAIN}`,
+      passwordHash,
+      emailVerifiedAt: createdAt,
+      createdAt,
+    };
+  });
+  await insertCounted("users", userRows, (batch) =>
+    db.insert(users).values(batch),
+  );
+
+  const takenSlugs = new Set(
+    (await db.select({ slug: questions.slug }).from(questions)).map(
+      (q) => q.slug,
+    ),
+  );
+  const CHUNK = 500;
+  for (let start = 0; start < questionCount; start += CHUNK) {
+    const chunk = Array.from(
+      { length: Math.min(CHUNK, questionCount - start) },
+      (_, j): SeedQuestion => {
+        const title =
+          QUESTIONS[start + j] ??
+          `Should ${pick(SUBJECTS)} ${pick(ACTIONS)} ${pick(OBJECTS)} ${pick(PLACES)} ${pick(TIMEFRAMES)}?`;
+        const base = slugify(title);
+        let slug = base;
+        for (let n = 2; takenSlugs.has(slug); n++)
+          slug = `${base}-${String(n)}`;
+        takenSlugs.add(slug);
+        const author = pick(userRows);
+        const createdAt = between(author.createdAt, now);
+        return {
+          id: uuidv7At(createdAt),
+          title,
+          slug,
+          description: chance(0.6) ? paragraph(1, 3) : "",
+          createdBy: author.id,
+          createdAt,
+        };
+      },
+    );
+    await insertCounted("questions", chunk, (batch) =>
+      db.insert(questions).values(batch),
+    );
+    await seedQuestionChunk(userRows, chunk, now);
+    if (questionCount > CHUNK) {
+      console.log(
+        `  ${String(Math.min(start + CHUNK, questionCount))}/${String(questionCount)} questions`,
+      );
+    }
+  }
+
+  for (const [label, count] of totals) {
+    console.log(`  ${String(count).padStart(9)} ${label}`);
+  }
 
   await recomputeScores();
-  const [totals] = await db
+  const [scored] = await db
     .select({
-      scored: sql<number>`count(*) filter (where helpful_score > 0)::int`,
+      count: sql<number>`count(*) filter (where helpful_score > 0)::int`,
     })
     .from(posts);
   console.log(
-    `Done in ${((Date.now() - started) / 1000).toFixed(1)}s. ${String(totals?.scored ?? 0)} posts have helpful votes.`,
+    `Done in ${((Date.now() - started) / 1000).toFixed(1)}s. ${String(scored?.count ?? 0)} posts have helpful votes.`,
   );
   console.log(
     `Log in as any seeded user with password "seed-password-123", e.g. ${userRows[0]?.email ?? ""}`,

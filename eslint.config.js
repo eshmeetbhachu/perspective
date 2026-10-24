@@ -56,6 +56,12 @@ export default defineConfig(
     extends: [tseslint.configs.disableTypeChecked],
   },
 
+  // k6 load-test scripts run inside k6, which provides these globals.
+  {
+    files: ["load/k6/**/*.js"],
+    languageOptions: { globals: { __ENV: "readonly", open: "readonly" } },
+  },
+
   // Must be last: turns off every rule that is about formatting,
   // because Prettier owns formatting.
   prettier,

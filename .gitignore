@@ -21,3 +21,7 @@ Thumbs.db
 # Playwright output
 e2e/test-results/
 e2e/playwright-report/
+
+# Load-test fixtures (session tokens for the local load database) and results
+load/data/
+load/results/

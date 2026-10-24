@@ -1,6 +1,6 @@
 #!/bin/sh
-# Creates the two least-privilege roles (Decision D19), plus a separate
-# database for automated tests with the same permissions.
+# Creates the two least-privilege roles (Decision D19), plus separate
+# databases for automated tests and load tests with the same permissions.
 # Runs once, the first time the database is created (empty volume).
 set -e
 
@@ -21,10 +21,12 @@ CREATE ROLE perspective_migrator LOGIN PASSWORD :'migrator_password';
 CREATE ROLE perspective_app LOGIN PASSWORD :'app_password';
 
 CREATE DATABASE perspective_test;
+-- Millions of generated rows for load testing (Phase 9), kept apart from dev data.
+CREATE DATABASE perspective_load;
 
 EOSQL
 
-for database in "$POSTGRES_DB" perspective_test; do
+for database in "$POSTGRES_DB" perspective_test perspective_load; do
   psql -v ON_ERROR_STOP=1 \
     --username "$POSTGRES_USER" \
     --dbname "$database" \

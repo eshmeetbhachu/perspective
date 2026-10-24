@@ -6,6 +6,8 @@ name: perspective
 services:
   postgres:
     image: postgres:18-alpine
+    # pg_stat_statements records time spent per query (Phase 9 analysis).
+    command: postgres -c shared_preload_libraries=pg_stat_statements
     environment:
       # The built-in superuser. Only for us (admin tasks), never for the app.
       POSTGRES_USER: postgres
@@ -56,6 +58,32 @@ services:
     image: axllent/mailpit:v1.29
     ports:
       - "127.0.0.1:8025:8025"
+
+  # --- Load testing (Phase 9): `docker compose --profile load ...` ---------
+
+  # The production API image on a small, fixed budget (like one cheap cloud
+  # instance), so results are repeatable and bottlenecks show early.
+  api-load:
+    profiles: [load]
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    depends_on:
+      postgres: { condition: service_healthy }
+    cpus: 1
+    mem_limit: 512m
+    environment:
+      DATABASE_URL: postgres://perspective_app:${APP_PASSWORD}@postgres:5432/perspective_load
+      MIGRATION_DATABASE_URL: postgres://perspective_migrator:${MIGRATOR_PASSWORD}@postgres:5432/perspective_load
+      WEB_ORIGIN: http://load.test
+      # k6 runs on Docker's private network and tells the API, via
+      # X-Forwarded-For, which simulated visitor each request is from.
+      TRUST_PROXY: uniquelocal
+      SMTP_URL: smtp://mailpit:1025
+
+  k6:
+    profiles: [load]
+    image: grafana/k6:1.0.0
+    volumes:
+      - ./load:/load
 
 volumes:
   pgdata:
