@@ -72,11 +72,13 @@ you use a domain you own (see "Later").
 2. Environment variables, scoped to **Production only** (so preview
    deployments of branches can't reach the real API):
 
-   | Variable                       | Value                                              |
-   | ------------------------------ | -------------------------------------------------- |
-   | `API_ORIGIN`                   | the Render address, no trailing slash              |
-   | `ORIGIN_SECRET`                | the same secret as on Render                       |
-   | `ENABLE_EXPERIMENTAL_COREPACK` | `1` (makes Vercel use pnpm 12 from `package.json`) |
+   | Variable            | Value                                             |
+   | ------------------- | ------------------------------------------------- |
+   | `API_ORIGIN`        | the Render address, no trailing slash             |
+   | `ORIGIN_SECRET`     | the same secret as on Render                      |
+   | `VITE_API_WAKE_URL` | the Render address + `/health` (all environments) |
+
+| `ENABLE_EXPERIMENTAL_COREPACK` | `1` (makes Vercel use pnpm 12 from `package.json`) |
 
 3. Deploy, then put the final `https://<project>.vercel.app` into Render's
    `WEB_ORIGIN` and redeploy the API.
@@ -84,8 +86,10 @@ you use a domain you own (see "Later").
 ## 5. Check it
 
 - Sign up on the live site and confirm the email arrives.
-- The first request after 15 idle minutes takes about a minute: Render is
-  waking the API. Vercel waits up to 120 seconds, so it completes.
+- The first request after 15 idle minutes takes about 30-60 seconds. Render
+  doesn't wake the API for requests that arrive through Vercel (it answers
+  502 at once), so the website pings `VITE_API_WAKE_URL` directly and retries
+  502s for up to two minutes (D64).
 - In Neon's SQL editor, this should show your own public IP, not a Vercel or
   Render one:
   `select host(ip) from sessions order by created_at desc limit 1`
