@@ -1,5 +1,5 @@
 # Build from the repository root: docker build -f apps/web/Dockerfile .
-FROM node:22-alpine AS build
+FROM node:25-alpine AS build
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 WORKDIR /repo
