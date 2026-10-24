@@ -8,7 +8,7 @@ import {
 import { and, count, eq, gt, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { bumpCache, questionCache } from "../../cache";
+import { bumpCache, questionCache, readerFor } from "../../cache";
 import { db } from "../../db/client";
 import { uniqueViolation } from "../../db/errors";
 import { posts } from "../../db/schema";
@@ -48,11 +48,19 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => {
-      const questionId = await findPublishedQuestionId(request.params.slug);
+      const reader = readerFor(request);
+      const questionId = await findPublishedQuestionId(
+        request.params.slug,
+        reader,
+      );
       const { stance, sort, cursor, limit } = request.query;
       const ranking = rankPosts(sort, cursor);
 
-      const rows = await selectPosts(request.user?.id ?? null, ranking.rank)
+      const rows = await selectPosts(
+        request.user?.id ?? null,
+        ranking.rank,
+        reader,
+      )
         .where(
           and(
             live,

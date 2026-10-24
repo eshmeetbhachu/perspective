@@ -69,6 +69,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorateRequest("user", null);
   app.decorateRequest("sessionId", null);
   app.decorateRequest("cacheKey", null);
+  app.decorateRequest("readFromReplica", false);
   app.addHook("onRequest", requireProxySecret);
   app.addHook("onRequest", checkOrigin);
   app.addHook("onRequest", loadSession);

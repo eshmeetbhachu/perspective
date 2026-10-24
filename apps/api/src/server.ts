@@ -1,7 +1,7 @@
 import { buildApp } from "./app";
 import { redis } from "./cache";
 import { env } from "./config/env";
-import { pool } from "./db/client";
+import { pool, replicaPool } from "./db/client";
 
 // If shutdown takes longer than this, a request or connection is stuck:
 // exit anyway rather than hang forever.
@@ -14,6 +14,9 @@ const app = await buildApp();
 // we just log it, and the pool opens a fresh connection on the next query.
 pool.on("error", (err) => {
   app.log.error({ err }, "idle database connection error");
+});
+replicaPool?.on("error", (err) => {
+  app.log.error({ err }, "idle replica connection error");
 });
 
 // Like the pool: log connection problems instead of crashing; requests
@@ -45,6 +48,7 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
   try {
     await app.close();
     await pool.end();
+    await replicaPool?.end();
     redis?.disconnect();
     process.exit(0);
   } catch (err) {

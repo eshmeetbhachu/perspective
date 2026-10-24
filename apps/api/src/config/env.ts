@@ -15,6 +15,8 @@ const EnvSchema = z
       .default("info"),
     // Connects as perspective_app, the row-access-only role (D19).
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+    // Optional read replica (Phase 9). Only reads it has caught up for use it.
+    DATABASE_REPLICA_URL: z.url({ protocol: /^postgres(ql)?$/ }).optional(),
     // The only origin allowed to make state-changing requests (CSRF, CORS).
     // Reduced to scheme + host, so "https://site.app/" still matches.
     WEB_ORIGIN: z

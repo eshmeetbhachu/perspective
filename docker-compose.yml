@@ -16,6 +16,8 @@ services:
       # Read by the init script to create the two app roles (Decision D19).
       MIGRATOR_PASSWORD: ${MIGRATOR_PASSWORD:?set it in .env}
       APP_PASSWORD: ${APP_PASSWORD:?set it in .env}
+      # Read by the init script for the load-test read replica (Phase 9).
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-replica-lab-only}
     ports:
       # 127.0.0.1 = reachable only from this machine, not from your network.
       - "127.0.0.1:5432:5432"
@@ -104,12 +106,34 @@ services:
     environment:
       DATABASE_URL: postgres://perspective_app:${APP_PASSWORD}@postgres:5432/perspective_load
       MIGRATION_DATABASE_URL: postgres://perspective_migrator:${MIGRATOR_PASSWORD}@postgres:5432/perspective_load
+      # LOAD_REPLICA=1 sends reads to postgres-replica when it is up to date.
+      DATABASE_REPLICA_URL: ${LOAD_REPLICA:+postgres://perspective_app:${APP_PASSWORD}@postgres-replica:5432/perspective_load}
       WEB_ORIGIN: http://load.test
       # k6 runs on Docker's private network and tells the API, via
       # X-Forwarded-For, which simulated visitor each request is from.
       TRUST_PROXY: uniquelocal
       SMTP_URL: smtp://mailpit:1025
       REDIS_URL: redis://redis:6379
+
+  # Read replica of `postgres`: copies it on first start, then follows its
+  # write-ahead log. No host port; only the load-test API reads from it.
+  postgres-replica:
+    profiles: [load]
+    image: postgres:18-alpine
+    entrypoint: ["sh", "/replica-entrypoint.sh"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      PGPASSWORD: ${REPLICATION_PASSWORD:-replica-lab-only}
+      POSTGRES_PASSWORD: unused-on-a-replica
+    volumes:
+      - pgreplica:/var/lib/postgresql
+      - ./load/replica-entrypoint.sh:/replica-entrypoint.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
 
   # Spreads requests over the api-load replicas
   # (`docker compose --profile load up -d --scale api-load=4`).
@@ -128,3 +152,4 @@ services:
 
 volumes:
   pgdata:
+  pgreplica:

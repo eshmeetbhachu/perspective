@@ -219,3 +219,58 @@ One known shortcut: the queue shares the cache's Redis, which evicts expiring
 keys when full. Jobs have no expiry so they are never evicted, but BullMQ's
 short job locks do, so under memory pressure an email could be sent twice.
 Production would give the queue its own Redis with eviction turned off.
+
+## 7. Read replica
+
+`postgres-replica` copies the primary once (`pg_basebackup`) and then follows
+its write-ahead log, a few milliseconds behind. The four cached routes (and
+logged-in reads of them) may read from it; everything else uses the primary.
+
+**The catch is lag.** Read straight after a write, a replica can still show
+the old data: you vote, the page reloads from the replica, and your vote
+isn't there. Worse, with the cache in front, a logged-out request right after
+a vote would store the old page under the new cache version for 10 minutes.
+
+**The fix: log positions.** After a write commits, the API records the
+primary's current write-ahead-log position (LSN) for each scope it changed,
+next to the cache version, in one atomic Redis script that only ever raises
+the stored position. A read uses the replica only if the replica has replayed
+at least as far as every scope its page depends on; otherwise the primary
+answers. That gives read-your-writes for every visitor and keeps the cache
+clean.
+
+**Tested** with the replica deliberately held 300 ms behind
+(`recovery_min_apply_delay`), voting and reading the column straight after:
+
+| Version                             | Stale reads right after a write |
+| ----------------------------------- | ------------------------------- |
+| With the position check             | **0** of 10,264                 |
+| Without it (always use the replica) | **10,390 of 10,390**            |
+
+Without the delay, under normal browsing the replica answered 24,090 of
+27,736 question and post reads (87%); the rest came straight after a write
+to the same question and stayed on the primary.
+
+**Capacity**, with each database server limited to 1 CPU as if on its own
+machine, 2 API instances. Counting only successful requests:
+
+| Setup               | 100 visits/s         | 140 visits/s           |
+| ------------------- | -------------------- | ---------------------- |
+| Primary only        | 310/s, 12.8% failed  | 275/s, 55% failed      |
+| Primary + 1 replica | **471/s, 0% failed** | **558/s, 1.2% failed** |
+
+With the replica the primary dropped from 100% CPU to 36-79% and the replica
+ran at 100%.
+
+**Findings**
+
+- The replica took most reads and doubled successful throughput under
+  overload, with no stale reads.
+- The bottleneck moved to the replica: reads are the heavy part of this site,
+  so one replica becomes the new limit. Next would be more replicas, or
+  spreading reads over the primary and the replicas.
+- A busy replica falls behind (up to 3.5 s here) because replaying changes
+  competes with queries. The position check handles it on its own: the
+  affected reads move back to the primary.
+- Needs Redis: without the recorded positions the API can't tell what the
+  replica is missing, so it never uses it.

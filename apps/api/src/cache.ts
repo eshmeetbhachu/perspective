@@ -1,6 +1,7 @@
 import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from "fastify";
 import { Redis } from "ioredis";
 import { env } from "./config/env";
+import { db, type Executor, pool, replicaDb, replicaPool } from "./db/client";
 
 // Shared cache for responses that are identical for every logged-out visitor
 // (Phase 9, D67). Without REDIS_URL nothing is cached.
@@ -29,45 +30,103 @@ declare module "fastify" {
   }
   interface FastifyRequest {
     cacheKey: string | null;
+    // The replica has replayed every write this route's data depends on.
+    readFromReplica: boolean;
   }
 }
 
 const versionKey = (scope: CacheScope) => `version:${scope}`;
+// Where the scope's latest write ends in the primary's write-ahead log
+// (a byte position), so readers can tell whether the replica has it yet.
+const lsnKey = (scope: CacheScope) => `lsn:${scope}`;
 
+// Atomic, so two writers bumping together can't lower the recorded position.
+const BUMP_SCRIPT = `
+local n = tonumber(ARGV[2])
+for i = 1, n do
+  redis.call("INCR", KEYS[i])
+  if ARGV[1] ~= "" and tonumber(ARGV[1]) > tonumber(redis.call("GET", KEYS[n + i]) or "0") then
+    redis.call("SET", KEYS[n + i], ARGV[1])
+  end
+end`;
+
+// Called after the write commits.
 export async function bumpCache(
   log: FastifyBaseLogger,
   ...scopes: CacheScope[]
 ): Promise<void> {
   if (!redis) return;
   try {
-    await redis.pipeline(scopes.map((s) => ["incr", versionKey(s)])).exec();
+    let lsn = "";
+    if (replicaPool) {
+      const { rows } = await pool.query<{ lsn: string }>(
+        "select (pg_current_wal_lsn() - '0/0')::text as lsn",
+      );
+      lsn = rows[0]?.lsn ?? "";
+    }
+    await redis.eval(
+      BUMP_SCRIPT,
+      scopes.length * 2,
+      ...scopes.map(versionKey),
+      ...scopes.map(lsnKey),
+      lsn,
+      String(scopes.length),
+    );
   } catch (err) {
     log.warn({ err, scopes }, "could not invalidate cache");
   }
 }
 
-// preHandler: answer from the cache, or remember the key to fill it later.
+// The furthest position any of the scopes needs; null if none was recorded.
+export function neededPosition(positions: (string | null)[]): bigint {
+  return positions.reduce(
+    (max, p) => (p !== null && BigInt(p) > max ? BigInt(p) : max),
+    0n,
+  );
+}
+
+async function replicaHasReplayed(position: bigint): Promise<boolean> {
+  if (!replicaPool) return false;
+  const { rows } = await replicaPool.query<{ ok: boolean | null }>(
+    "select pg_last_wal_replay_lsn() - '0/0' >= $1::numeric as ok",
+    [position.toString()],
+  );
+  return rows[0]?.ok === true;
+}
+
+// preHandler: answer logged-out visitors from the cache. On a miss, decide
+// whether the replica is up to date enough to answer instead of the primary.
 export async function serveFromCache(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
   const config = request.routeOptions.config.cache;
-  if (!redis || !config || request.user || request.method !== "GET") return;
+  if (!redis || !config || request.method !== "GET") return;
 
-  let cached: string | null;
+  let cached: string | null = null;
   try {
     const scopes = config.scopes(request);
-    const versions = await redis.mget(scopes.map(versionKey));
-    const tag = scopes.map((s, i) => `${s}@${versions[i] ?? "0"}`).join(",");
-    request.cacheKey = `cache:${tag}:${request.url}`;
-    cached = await redis.get(request.cacheKey);
+    const values = await redis.mget([
+      ...scopes.map(versionKey),
+      ...scopes.map(lsnKey),
+    ]);
+    if (!request.user) {
+      const tag = scopes.map((s, i) => `${s}@${values[i] ?? "0"}`).join(",");
+      request.cacheKey = `cache:${tag}:${request.url}`;
+      cached = await redis.get(request.cacheKey);
+    }
+    if (cached === null) {
+      request.readFromReplica = await replicaHasReplayed(
+        neededPosition(values.slice(scopes.length)),
+      );
+    }
   } catch (err) {
-    request.log.warn({ err }, "cache unavailable");
+    request.log.warn({ err }, "cache or replica unavailable");
     return;
   }
 
   if (cached === null) {
-    reply.header("x-cache", "miss");
+    if (request.cacheKey) reply.header("x-cache", "miss");
     return;
   }
   // Already serialised JSON: sent as is, skipping the database and the
@@ -77,6 +136,11 @@ export async function serveFromCache(
     .header("x-cache", "hit")
     .type("application/json; charset=utf-8")
     .send(cached);
+}
+
+// Which database a cached route reads from (D71).
+export function readerFor(request: FastifyRequest): Executor {
+  return request.readFromReplica && replicaDb ? replicaDb : db;
 }
 
 // onSend: store the serialised body of a successful miss.

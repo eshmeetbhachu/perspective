@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
+import { neededPosition } from "../src/cache";
 import { db } from "../src/db/client";
 import { posts, questions, userStances, users } from "../src/db/schema";
 import { get, post, register, resetDatabase } from "./helpers";
@@ -128,5 +129,14 @@ describe("response cache for logged-out visitors", () => {
 
     const after = await get(app, COLUMN);
     expect(after.json<PostListResponse>().posts).toHaveLength(0);
+  });
+});
+
+describe("read replica", () => {
+  it("waits for the furthest write any scope depends on", () => {
+    expect(neededPosition([null, null])).toBe(0n);
+    expect(neededPosition(["2048", null, "9007199254740993"])).toBe(
+      9007199254740993n,
+    );
   });
 });

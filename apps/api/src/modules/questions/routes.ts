@@ -10,8 +10,13 @@ import {
 import { and, count, desc, eq, gt, lt, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { bumpCache, questionCache, questionListCache } from "../../cache";
-import { db } from "../../db/client";
+import {
+  bumpCache,
+  questionCache,
+  questionListCache,
+  readerFor,
+} from "../../cache";
+import { db, type Executor } from "../../db/client";
 import { uniqueViolation } from "../../db/errors";
 import { questions, users } from "../../db/schema";
 import { AppError } from "../../errors";
@@ -43,8 +48,8 @@ function toQuestion({ authorUsername, createdAt, ...row }: Row): Question {
   };
 }
 
-function selectQuestions() {
-  return db
+function selectQuestions(reader: Executor = db) {
+  return reader
     .select(columns)
     .from(questions)
     .leftJoin(users, eq(users.id, questions.createdBy));
@@ -133,7 +138,7 @@ export const questionRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const { cursor, limit } = request.query;
-      const rows = await selectQuestions()
+      const rows = await selectQuestions(readerFor(request))
         .where(cursor ? and(published, lt(questions.id, cursor)) : published)
         .orderBy(desc(questions.id))
         .limit(limit + 1);
@@ -159,7 +164,7 @@ export const questionRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const query = sql`websearch_to_tsquery('english', ${request.query.q})`;
-      const rows = await selectQuestions()
+      const rows = await selectQuestions(readerFor(request))
         .where(and(published, sql`${questions.searchVector} @@ ${query}`))
         .orderBy(
           desc(sql`ts_rank(${questions.searchVector}, ${query})`),
@@ -200,7 +205,7 @@ export const questionRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => {
-      const [row] = await selectQuestions().where(
+      const [row] = await selectQuestions(readerFor(request)).where(
         and(published, eq(questions.slug, request.params.slug)),
       );
       if (!row) throw new AppError(404, "NOT_FOUND", "Question not found");

@@ -1,6 +1,6 @@
 import type { Post } from "@perspective/shared";
 import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
-import { db } from "../../db/client";
+import { db, type Executor } from "../../db/client";
 import {
   challenges,
   posts,
@@ -63,8 +63,9 @@ export function toPost(row: Row): Post {
 export function selectPosts(
   viewerId: string | null,
   rank: SQL<number> = sql<number>`0`.mapWith(Number),
+  reader: Executor = db,
 ) {
-  return db
+  return reader
     .select({ ...postColumns, rank })
     .from(posts)
     .innerJoin(questions, eq(questions.id, posts.questionId))

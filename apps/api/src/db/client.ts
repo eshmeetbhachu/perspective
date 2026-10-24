@@ -12,6 +12,15 @@ export const pool = new Pool({ connectionString: env.DATABASE_URL });
 // (createdAt -> created_at), matching the roadmap's data model.
 export const db = drizzle({ client: pool, schema, casing: "snake_case" });
 
+// A read-only copy that follows the primary a few milliseconds behind. Routes
+// use it only when it has replayed every write their data depends on (D71).
+export const replicaPool = env.DATABASE_REPLICA_URL
+  ? new Pool({ connectionString: env.DATABASE_REPLICA_URL })
+  : null;
+export const replicaDb = replicaPool
+  ? drizzle({ client: replicaPool, schema, casing: "snake_case" })
+  : null;
+
 // Either the database or an open transaction, so helpers can join a caller's
 // transaction.
 export type Executor =
