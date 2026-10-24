@@ -1,5 +1,5 @@
 # Build from the repository root: docker build -f apps/api/Dockerfile .
-FROM node:22-alpine AS build
+FROM node:25-alpine AS build
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 WORKDIR /repo
@@ -18,7 +18,7 @@ COPY apps/api apps/api
 RUN pnpm --filter @perspective/api build \
   && pnpm --filter @perspective/api deploy --prod /out
 
-FROM node:22-alpine
+FROM node:25-alpine
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
 WORKDIR /app
 COPY --from=build /out/package.json ./
