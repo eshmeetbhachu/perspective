@@ -253,10 +253,12 @@ export const posts = pgTable(
     removedAt: timestamptz(),
   },
   (t) => [
-    // One column of one question, newest first, live posts only.
+    // One column of one question, newest first, live posts only. The
+    // condition matches the listing's filter exactly, so Postgres can read
+    // the first page in order and stop (Phase 9, docs/SCALING.md).
     index("posts_column_idx")
       .on(t.questionId, t.stance, t.id.desc())
-      .where(sql`${t.deletedAt} is null`),
+      .where(sql`${t.deletedAt} is null and ${t.removedAt} is null`),
     // One live post per person per side of a question.
     uniqueIndex("posts_author_question_stance_unique")
       .on(t.authorId, t.questionId, t.stance)
@@ -264,7 +266,7 @@ export const posts = pgTable(
     // "Top" sort within one column.
     index("posts_column_top_idx")
       .on(t.questionId, t.stance, t.helpfulScore.desc(), t.id.desc())
-      .where(sql`${t.deletedAt} is null`),
+      .where(sql`${t.deletedAt} is null and ${t.removedAt} is null`),
     index("posts_author_created_idx").on(t.authorId, t.createdAt),
     check("posts_title_length", sql`char_length(${t.title}) between 5 and 120`),
     check(

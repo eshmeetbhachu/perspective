@@ -54,3 +54,50 @@ out of memory. The failures were client timeouts and dropped connections.)
 - The most expensive query is search: about 10 ms per call and the largest
   share of total database time. Next most: the question listing (about 1 ms,
   but called the most).
+
+## 2. Query plans and indexes
+
+`pg_stat_statements` ranked the queries by total time during the baseline,
+then `EXPLAIN (ANALYZE, BUFFERS)` showed what each one does.
+
+| Query               | Calls (2 min @150) | Avg     | What the plan showed                                                                                                |
+| ------------------- | ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| Search, common word | 3,718              | 10.9 ms | "cities" matches 16% of all questions, so Postgres reads the whole table, ranks all 7,959 matches, keeps 30         |
+| Search, rare word   | -                  | 0.6 ms  | Uses the GIN index                                                                                                  |
+| Latest questions    | 11,270             | 1.0 ms  | Walks the primary key backwards and stops at 21; the time is the 21 author lookups                                  |
+| Post column, Top    | 18,245             | 0.5 ms  | Busiest column (337 posts): reads **all** 337, looks up 337 authors, sorts, keeps 11: **3.0 ms, 1,729 pages**       |
+| Post column, Hot    | 5,159              | 1.5 ms  | Score depends on the current time, so the whole column is read and sorted (5 ms for the busiest); no index can help |
+
+**Fix:** the two column indexes were partial on `deleted_at is null`, but the
+listing also filters `removed_at is null`. Postgres couldn't trust the index
+to return only matching rows in order, so it fetched the whole column and
+sorted it. With the index condition matching the query exactly (migration
+`0010`), the busiest column reads 11 rows in index order and stops:
+**3.0 ms → 0.4 ms, 1,729 → 95 pages**. Average column time hardly moves
+because most columns are small; the win is in the worst case, which is the
+most-viewed questions.
+
+**Measurement noise.** Three identical runs at 50 visits/s gave p95 of 26, 25
+and 38 ms (one stray run gave 81 ms). Laptop background apps and CPU speed
+changes move p95 by ±50%, so from here on results are the median of repeated
+runs, and changes are judged by the number they target (query time, CPU per
+request) rather than one end-to-end run. End to end, the index change can't
+show yet: the API's CPU, not the database, sets the ceiling.
+
+**Where the API's CPU goes** (Node `--cpu-prof`, 60 s at 50 visits/s):
+
+| Share of busy CPU | What                                                                   |
+| ----------------- | ---------------------------------------------------------------------- |
+| 22%               | drizzle-orm building SQL text from the query builder, on every request |
+| 12%               | garbage collection                                                     |
+| 12%               | network writes: queries to Postgres (2.5 s) and HTTP responses (1.9 s) |
+| 7%                | pg driver and protocol                                                 |
+| 4%                | fastify                                                                |
+| 3%                | our route code                                                         |
+| 2% each           | helmet, pino logging, zod                                              |
+
+Prepared statements would remove part of the 22%, but the column query
+changes shape with sort, paging and login (12 variants). A cache removes the
+query building, the database round trip and the JSON serialisation for every
+cache hit, and 70% of visitors are logged out and see identical pages. Next
+step: caching.
