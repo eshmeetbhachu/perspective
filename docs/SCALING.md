@@ -274,3 +274,25 @@ ran at 100%.
   affected reads move back to the primary.
 - Needs Redis: without the recorded positions the API can't tell what the
   replica is missing, so it never uses it.
+
+## 8. A dedicated search engine?
+
+The roadmap said: only if Postgres search becomes the bottleneck. Measured
+over the replica runs, search was the most expensive single query: 18% of the
+primary's and 26% of the replica's query time, from about 4% of requests.
+
+**Decision: not yet.**
+
+- Search isn't _the_ bottleneck: the other three quarters of database time
+  are question and column reads, which a search engine wouldn't touch.
+- The most it could save is about a quarter of database time. The cost is a
+  new service, a job pipeline to keep it in sync with Postgres, and one more
+  place for data to be stale.
+- The seed data exaggerates search cost: generated titles reuse a few dozen
+  words, so "cities" matches 16% of all questions. Real titles use far more
+  varied words, so each search matches far fewer rows to rank.
+- Logged-out searches are already cached.
+
+**Revisit when** search passes about 40% of database time after caching, or
+the product needs what Postgres full-text search can't do well: typo
+tolerance, filters and facets, or ranking tuned per field.
