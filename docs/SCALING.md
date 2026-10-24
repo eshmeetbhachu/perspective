@@ -192,3 +192,30 @@ Redis 0.2 cores: about 11 of the laptop's 16 threads, plus Windows.
   numbers say so instead of hiding it.
 - The database is now the largest single consumer (4.5 cores): the next
   bottleneck, which is what a read replica is for.
+
+## 6. Background jobs
+
+Only work that doesn't need to finish inside the request was moved to a job:
+
+- **Emails** (sign-up confirmation, password reset). Before, signup waited for
+  the email provider, and if it was down the email was lost: the error was
+  only logged. Now, with Redis configured, the API puts the email on a BullMQ
+  queue and returns; a separate worker process (`dist/worker.js`, same image)
+  sends it, retrying 8 times over about 20 minutes. Without Redis, or if
+  queueing fails, the email is sent during the request as before, so
+  production on Render is unchanged. Sent jobs are deleted at once and failed
+  ones after a day, since emails hold one-time links.
+- **Notifications stay in the request's transaction** (D49): a notification
+  can never exist without the challenge or reply it points to. A queue would
+  give that guarantee up for no gain; writing one row is cheap.
+- **Scores** are already updated inside each vote's transaction, so there is
+  no recalculation to move.
+
+Tested with the production images: with the mail server stopped, signup
+returned 201 in 0.39 s, the worker logged failed attempts 1 and 2, and once
+the mail server was started again the email was sent and arrived.
+
+One known shortcut: the queue shares the cache's Redis, which evicts expiring
+keys when full. Jobs have no expiry so they are never evicted, but BullMQ's
+short job locks do, so under memory pressure an email could be sent twice.
+Production would give the queue its own Redis with eviction turned off.

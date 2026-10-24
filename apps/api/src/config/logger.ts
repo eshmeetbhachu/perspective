@@ -1,4 +1,5 @@
-import type { FastifyRequest, FastifyServerOptions } from "fastify";
+import type { FastifyRequest } from "fastify";
+import type { LoggerOptions } from "pino";
 import { env } from "./env";
 
 const SECRET_PARAMS = new Set(["code", "state", "token"]);
@@ -17,7 +18,8 @@ export function redactUrl(url: string): string {
   return `${path ?? ""}?${params}`;
 }
 
-export const loggerOptions: FastifyServerOptions["logger"] = {
+// Used by the API (through Fastify) and by the job worker.
+export const loggerOptions: LoggerOptions = {
   level: env.LOG_LEVEL,
 
   // Never write secrets to logs (security checklist). Any logged object with

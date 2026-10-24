@@ -48,6 +48,7 @@ services:
     build: { context: ., dockerfile: apps/api/Dockerfile }
     depends_on:
       postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
     environment:
       DATABASE_URL: postgres://perspective_app:${APP_PASSWORD}@postgres:5432/perspective
       MIGRATION_DATABASE_URL: postgres://perspective_migrator:${MIGRATOR_PASSWORD}@postgres:5432/perspective
@@ -57,6 +58,22 @@ services:
       TRUST_PROXY: uniquelocal
       SMTP_URL: smtp://mailpit:1025
       EMAIL_FROM: Perspective <no-reply@perspective.local>
+      REDIS_URL: redis://redis:6379
+
+  # Sends the emails the API queues (same image, different entry point).
+  worker:
+    profiles: [app]
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    command: ["node", "--enable-source-maps", "dist/worker.js"]
+    depends_on:
+      redis: { condition: service_healthy }
+    healthcheck:
+      disable: true
+    environment:
+      DATABASE_URL: postgres://perspective_app:${APP_PASSWORD}@postgres:5432/perspective
+      SMTP_URL: smtp://mailpit:1025
+      EMAIL_FROM: Perspective <no-reply@perspective.local>
+      REDIS_URL: redis://redis:6379
 
   web:
     profiles: [app]

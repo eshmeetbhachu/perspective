@@ -4,6 +4,9 @@ packages:
   - "e2e"
 allowBuilds:
   esbuild: true
+  # Optional native speed-up for BullMQ's message encoding; it falls back to
+  # plain JavaScript, so its install script isn't needed.
+  msgpackr-extract: false
 overrides:
   # drizzle-kit's config loader pins an esbuild with a known advisory.
   "@esbuild-kit/core-utils>esbuild": ^0.25.0
