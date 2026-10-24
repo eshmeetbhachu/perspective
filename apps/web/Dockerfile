@@ -16,7 +16,7 @@ COPY apps/web apps/web
 RUN pnpm --filter @perspective/web build
 
 # Runs as a non-root user, which is why it listens on 8080 rather than 80.
-FROM nginxinc/nginx-unprivileged:1.29-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 ENV API_UPSTREAM=http://api:3000
 COPY apps/web/nginx/default.conf.template /etc/nginx/templates/
 COPY --from=build /repo/apps/web/dist /usr/share/nginx/html
