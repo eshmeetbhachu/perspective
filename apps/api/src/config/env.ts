@@ -41,6 +41,8 @@ const EnvSchema = z
     // only written to the log.
     SMTP_URL: z.url({ protocol: /^smtps?$/ }).optional(),
     EMAIL_FROM: z.string().min(1).default("Perspective <no-reply@localhost>"),
+    // Optional response cache (Phase 9). Without it nothing is cached.
+    REDIS_URL: z.url({ protocol: /^rediss?$/ }).optional(),
   })
   .refine(
     (env) => env.NODE_ENV !== "production" || env.SMTP_URL !== undefined,

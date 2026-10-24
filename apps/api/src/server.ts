@@ -1,4 +1,5 @@
 import { buildApp } from "./app";
+import { redis } from "./cache";
 import { env } from "./config/env";
 import { pool } from "./db/client";
 
@@ -13,6 +14,12 @@ const app = await buildApp();
 // we just log it, and the pool opens a fresh connection on the next query.
 pool.on("error", (err) => {
   app.log.error({ err }, "idle database connection error");
+});
+
+// Like the pool: log connection problems instead of crashing; requests
+// just miss the cache until Redis is back.
+redis?.on("error", (err) => {
+  app.log.warn({ err }, "redis connection error");
 });
 
 try {
@@ -38,6 +45,7 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
   try {
     await app.close();
     await pool.end();
+    redis?.disconnect();
     process.exit(0);
   } catch (err) {
     app.log.error({ err }, "error during shutdown");

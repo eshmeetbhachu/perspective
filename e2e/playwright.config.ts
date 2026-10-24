@@ -32,6 +32,9 @@ export default defineConfig({
         PORT: String(API_PORT),
         WEB_ORIGIN: BASE_URL,
         DATABASE_URL: databases.app,
+        // The browser tests check pages, not caching; keep them independent
+        // of whatever is in Redis.
+        REDIS_URL: "",
       },
     },
     {

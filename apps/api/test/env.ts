@@ -14,6 +14,17 @@ export function useTestEnvironment(): void {
     process.env[name] = url.toString();
   }
 
+  // Redis database 1, so tests never share cache entries with development.
+  // An empty REDIS_URL= in .env counts as unset.
+  const configured = process.env.REDIS_URL;
+  const redisUrl = new URL(
+    configured !== undefined && configured !== ""
+      ? configured
+      : "redis://127.0.0.1:6379",
+  );
+  redisUrl.pathname = "/1";
+  process.env.REDIS_URL = redisUrl.toString();
+
   process.env.NODE_ENV = "test";
   process.env.LOG_LEVEL = "silent";
 }

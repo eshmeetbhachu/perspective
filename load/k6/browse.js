@@ -9,6 +9,7 @@ import { check, sleep } from "k6";
 import { SharedArray } from "k6/data";
 import exec from "k6/execution";
 import http from "k6/http";
+import { Rate } from "k6/metrics";
 
 const API = __ENV.API_URL || "http://api-load:3000";
 const ORIGIN = "http://load.test";
@@ -99,8 +100,13 @@ function get(path, name, headers) {
   return ["GET", `${API}${path}`, null, { headers, tags: { name } }];
 }
 
+// Share of cacheable responses (those with an X-Cache header) that were hits.
+const cacheHits = new Rate("cache_hits");
+
 function expectOk(responses) {
   for (const r of responses) {
+    const cache = r.headers["X-Cache"];
+    if (cache) cacheHits.add(cache === "hit");
     check(r, { "status ok": (res) => res.status < 400 || res.status === 401 });
   }
 }
@@ -199,6 +205,11 @@ export function handleSummary(data) {
   lines.push(
     `requests: ${reqs.count} (${reqs.rate.toFixed(0)}/s), failed: ${(data.metrics.http_req_failed.values.rate * 100).toFixed(2)}%`,
   );
+  if (data.metrics.cache_hits) {
+    lines.push(
+      `cache hits: ${(data.metrics.cache_hits.values.rate * 100).toFixed(1)}% of cacheable responses`,
+    );
+  }
   lines.push(`${"endpoint".padEnd(36)}    med     p95     p99`);
   for (const name of ["", ...ENDPOINTS]) {
     const metric =

@@ -8,6 +8,7 @@ import {
 import { and, count, eq, gt, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
+import { bumpCache, questionCache } from "../../cache";
 import { db } from "../../db/client";
 import { uniqueViolation } from "../../db/errors";
 import { posts } from "../../db/schema";
@@ -39,6 +40,7 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     "/questions/:slug/posts",
     {
+      config: { cache: questionCache },
       schema: {
         params: slugParams,
         querystring: postListQuerySchema,
@@ -150,6 +152,7 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
         throw err;
       }
 
+      await bumpCache(request.log, `question:${request.params.slug}`);
       return reply
         .status(201)
         .send({ post: toPost(await findPost(postId, user.id)) });
@@ -181,7 +184,9 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
         .update(posts)
         .set({ ...request.body, editedAt: new Date() })
         .where(eq(posts.id, request.params.id));
-      return { post: toPost(await findPost(request.params.id, user.id)) };
+      const post = await findPost(request.params.id, user.id);
+      await bumpCache(request.log, `question:${post.questionSlug}`);
+      return { post: toPost(post) };
     },
   );
 
@@ -192,11 +197,12 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
     { schema: { params: idParams } },
     async (request, reply) => {
       const user = requireUser(request);
-      await findOwnPost(request.params.id, user.id);
+      const post = await findOwnPost(request.params.id, user.id);
       await db
         .update(posts)
         .set({ deletedAt: new Date() })
         .where(eq(posts.id, request.params.id));
+      await bumpCache(request.log, `question:${post.questionSlug}`);
       return reply.status(204).send();
     },
   );

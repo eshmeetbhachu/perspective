@@ -2,6 +2,7 @@ import { VOTING_ACCOUNT_AGE_HOURS, voteSchema } from "@perspective/shared";
 import { and, eq, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
+import { bumpCache } from "../../cache";
 import { db } from "../../db/client";
 import { posts, postVotes } from "../../db/schema";
 import { AppError } from "../../errors";
@@ -60,7 +61,7 @@ export const voteRoutes: FastifyPluginAsyncZod = async (app) => {
 
       // The vote and the score change commit together or not at all, and the
       // primary key makes a repeated vote a no-op instead of a double count.
-      return db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx) => {
         const [inserted] = await tx
           .insert(postVotes)
           .values({
@@ -87,6 +88,9 @@ export const voteRoutes: FastifyPluginAsyncZod = async (app) => {
         if (!updated) throw new AppError(404, "NOT_FOUND", "Post not found");
         return { ...updated, votedByMe: true };
       });
+      // After the commit, so nobody caches the old score under the new version.
+      await bumpCache(request.log, `question:${post.questionSlug}`);
+      return result;
     },
   );
 
@@ -102,7 +106,7 @@ export const voteRoutes: FastifyPluginAsyncZod = async (app) => {
       const user = requireUser(request);
       const post = await findPost(request.params.id, user.id);
 
-      return db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx) => {
         const [removed] = await tx
           .delete(postVotes)
           .where(
@@ -128,6 +132,8 @@ export const voteRoutes: FastifyPluginAsyncZod = async (app) => {
         if (!updated) throw new AppError(404, "NOT_FOUND", "Post not found");
         return { ...updated, votedByMe: false };
       });
+      await bumpCache(request.log, `question:${post.questionSlug}`);
+      return result;
     },
   );
 };

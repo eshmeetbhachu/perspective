@@ -14,6 +14,7 @@ import type {
   ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import { z } from "zod";
+import { bumpCache } from "../../cache";
 import { db, type Executor } from "../../db/client";
 import { auditLog, reports, sessions, users } from "../../db/schema";
 import { AppError } from "../../errors";
@@ -178,6 +179,7 @@ export const moderationRoutes: FastifyPluginAsyncZod = async (app) => {
             reason: request.body.reason,
           });
         });
+        await bumpCache(request.log, "moderation");
         return reply.status(204).send();
       },
     );
@@ -201,6 +203,7 @@ export const moderationRoutes: FastifyPluginAsyncZod = async (app) => {
             reason: request.body.reason,
           });
         });
+        await bumpCache(request.log, "moderation");
         return reply.status(204).send();
       },
     );

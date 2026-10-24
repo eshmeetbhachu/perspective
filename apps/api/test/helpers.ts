@@ -1,5 +1,6 @@
 import type { ErrorResponse, UserResponse } from "@perspective/shared";
 import type { FastifyInstance, LightMyRequestResponse } from "fastify";
+import { redis } from "../src/cache";
 import { env } from "../src/config/env";
 import { db } from "../src/db/client";
 import { oauthPending, questions, reports, users } from "../src/db/schema";
@@ -9,6 +10,8 @@ export async function resetDatabase(): Promise<void> {
   await db.delete(questions);
   await db.delete(users);
   await db.delete(oauthPending);
+  // New rows reuse slugs, so cached pages from the old ones must go too.
+  await redis?.flushdb();
 }
 
 export function post(

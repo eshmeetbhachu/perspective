@@ -10,6 +10,7 @@ import {
 import { and, count, desc, eq, gt, lt, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
+import { bumpCache, questionCache, questionListCache } from "../../cache";
 import { db } from "../../db/client";
 import { uniqueViolation } from "../../db/errors";
 import { questions, users } from "../../db/schema";
@@ -114,6 +115,7 @@ export const questionRoutes: FastifyPluginAsyncZod = async (app) => {
       });
       const [row] = await selectQuestions().where(eq(questions.id, id));
       if (!row) throw new Error("Created question not found");
+      await bumpCache(request.log, "questions");
       return reply.status(201).send({ question: toQuestion(row) });
     },
   );
@@ -123,6 +125,7 @@ export const questionRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     "/questions",
     {
+      config: { cache: questionListCache },
       schema: {
         querystring: questionListQuerySchema,
         response: { 200: questionListResponseSchema },
@@ -148,6 +151,7 @@ export const questionRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     "/questions/search",
     {
+      config: { cache: questionListCache },
       schema: {
         querystring: questionSearchQuerySchema,
         response: { 200: questionListResponseSchema },
@@ -189,6 +193,7 @@ export const questionRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     "/questions/:slug",
     {
+      config: { cache: questionCache },
       schema: {
         params: z.object({ slug: z.string().min(1).max(200) }),
         response: { 200: questionResponseSchema },

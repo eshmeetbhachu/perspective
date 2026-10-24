@@ -101,3 +101,45 @@ changes shape with sort, paging and login (12 variants). A cache removes the
 query building, the database round trip and the JSON serialisation for every
 cache hit, and 70% of visitors are logged out and see identical pages. Next
 step: caching.
+
+## 3. Redis cache for logged-out visitors
+
+Logged-out visitors (70% of traffic) all see identical pages, so their
+responses for the question list, search, a question and its columns are kept
+in Redis as finished JSON. A hit skips the query building, the database and
+the serialiser. Logged-in pages (which show "you voted") are never cached.
+
+**Invalidation uses version numbers.** Each cached page belongs to scopes:
+`questions` (list and search), `question:<slug>` (one question and its
+columns) and `moderation` (everything). Writes bump the scope's version after
+their transaction commits (new question; new, edited or deleted post; vote;
+new challenge; moderator remove or restore). The cache key contains the
+current versions, so after a bump the old entries are simply never read again
+and expire on their own; nothing has to find and delete them. Bumping after
+the commit matters: bumping first would let a reader cache the old data under
+the new version.
+
+| Visits/s | Requests/s | p95   | Failed | Cache hits | API CPU | Postgres CPU   |
+| -------- | ---------- | ----- | ------ | ---------- | ------- | -------------- |
+| 50       | 366        | 21 ms | 0%     | 33%        | 50%     | **48%** (109%) |
+| 100      | 619        | 9.2 s | 0%     | 36%        | 98%     | 79% (146%)     |
+| 150      | 661        | 26 s  | 8.2%   | 37%        | 95%     | 44%            |
+| 200      | 725        | 24 s  | 26%    | 36%        | 101%    | 87%            |
+
+(In brackets: the baseline.) With a 10-minute expiry instead of 60 s, the
+warm cache answered **49%** of cacheable requests and the API handled
+**697 requests/s** at 100 visits/s; Redis used 137 MB. Explicit invalidation
+makes the expiry only a safety net, so the longer one is kept.
+
+**Findings**
+
+- The database's load roughly halved at the same traffic. It is the part that
+  is hardest to scale, so this is the most valuable effect.
+- The API's ceiling moved only from about 600 to 700 requests/s: misses,
+  logged-in visitors and uncached endpoints still cost the same, and the API's
+  single CPU is still the limit.
+- The hit rate is capped by the long tail: the top 1% of questions gets only
+  about 22% of visits, and most questions are viewed less often than their
+  cache entry lives. Caching helps the head, not the tail.
+- Next: run several API instances, which first needs sessions and rate limits
+  that work across instances.

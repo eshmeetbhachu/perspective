@@ -6,6 +6,7 @@ import {
 } from "@perspective/shared";
 import { and, count, desc, eq, gt, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+import { bumpCache } from "../../cache";
 import { z } from "zod";
 import { db } from "../../db/client";
 import { uniqueViolation } from "../../db/errors";
@@ -165,6 +166,8 @@ export const challengeRoutes: FastifyPluginAsyncZod = async (app) => {
         throw err;
       }
 
+      // Each post in a column shows how many challenges it has.
+      await bumpCache(request.log, `question:${post.questionSlug}`);
       return reply.status(201).send(await challengePage(challengeId, user.id));
     },
   );

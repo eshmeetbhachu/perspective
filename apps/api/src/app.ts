@@ -7,6 +7,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
+import { serveFromCache, storeInCache } from "./cache";
 import { env } from "./config/env";
 import { loggerOptions } from "./config/logger";
 import { AppError } from "./errors";
@@ -61,9 +62,13 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.decorateRequest("user", null);
   app.decorateRequest("sessionId", null);
+  app.decorateRequest("cacheKey", null);
   app.addHook("onRequest", requireProxySecret);
   app.addHook("onRequest", checkOrigin);
   app.addHook("onRequest", loadSession);
+  // After loadSession, so it knows whether the visitor is logged in.
+  app.addHook("preHandler", serveFromCache);
+  app.addHook("onSend", storeInCache);
   // Responses depend on who is asking, so no shared cache (CDN) may keep them.
   app.addHook("onSend", async (_request, reply) => {
     if (!reply.hasHeader("cache-control"))
