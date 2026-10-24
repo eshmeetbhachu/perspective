@@ -3,6 +3,27 @@
 Every change follows the same loop: measure, find the bottleneck, change one
 thing, measure again. This file records each measurement.
 
+## Results at a glance
+
+| Step                          | What it targets                                        | Before                   | After                                     |
+| ----------------------------- | ------------------------------------------------------ | ------------------------ | ----------------------------------------- |
+| 1. Baseline                   | Capacity of one 1-CPU API instance                     | -                        | ~600 req/s; p95 18 ms at 366 req/s        |
+| 2. Index matches the filter   | Busiest post column query                              | 3.0 ms, 1,729 pages read | **0.4 ms, 95 pages**                      |
+| 3. Redis cache (logged out)   | Database CPU at 50 visits/s                            | 109%                     | **48%**; API ceiling ~600 → ~700 req/s    |
+| 4. Rate limits in Redis       | Login attempts allowed across N instances              | N × 10                   | **10**                                    |
+| 5. Load balancer, 2 instances | Requests/s                                             | 588                      | **979 (+66%)**; 4 instances: laptop-bound |
+| 6. Email queue                | Signup while the email provider is down                | Email lost               | **Delivered after the outage**; 0.39 s    |
+| 7. Read replica               | Successful req/s, databases capped at 1 CPU            | 275 (55% failed)         | **558 (1.2% failed)**                     |
+| 7. Position (LSN) check       | Stale reads right after a write, replica 300 ms behind | 100% (without the check) | **0%**                                    |
+| 8. Search engine?             | Search share of database time                          | 18-26%                   | Not needed yet (D72)                      |
+| 9. Tracing cost               | API CPU per request                                    | 1.65 ms (off)            | 3.39 ms at 100%, 2.36 ms at 1%            |
+
+The bottleneck moved at each step: the API's CPU (1), then the database once
+several instances ran (5), then the single replica (7). On one laptop the
+experiments share 16 threads, so results that need more machines (4 API
+instances, a replica on its own server) are shown with that limit stated
+rather than hidden.
+
 ## How to reproduce
 
 ```sh

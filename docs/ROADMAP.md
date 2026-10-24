@@ -324,4 +324,4 @@ Every step follows the same loop: **measure → find the bottleneck → change o
 - [x] Read replica for heavy read traffic
 - [x] Dedicated search engine if Postgres search becomes the bottleneck: measured, not needed yet (D72)
 - [x] Observability: metrics, dashboards, tracing (OpenTelemetry)
-- [ ] Write-up: before/after numbers for every change (great for your resume and interviews)
+- [x] Write-up: before/after numbers for every change ([SCALING.md](SCALING.md), "Results at a glance")
