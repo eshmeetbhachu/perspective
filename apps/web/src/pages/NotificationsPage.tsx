@@ -2,8 +2,10 @@ import { useEffect } from "react";
 import { Link } from "react-router";
 import { useMarkNotificationsRead, useNotifications } from "../challenges";
 import { formatDate } from "../components/QuestionCard";
+import { usePageTitle } from "../title";
 
 export function NotificationsPage() {
+  usePageTitle("Notifications");
   const notifications = useNotifications();
   const markRead = useMarkNotificationsRead();
   const unread = notifications.data?.unreadCount ?? 0;

@@ -2,8 +2,10 @@ import { Link, useNavigate, useParams } from "react-router";
 import { useCurrentUser } from "../auth";
 import { PostEditor } from "../components/PostEditor";
 import { useEditPost, usePost } from "../posts";
+import { usePageTitle } from "../title";
 
 export function EditPostPage() {
+  usePageTitle("Edit your post");
   const { id = "" } = useParams();
   const { data: user } = useCurrentUser();
   const post = usePost(id);

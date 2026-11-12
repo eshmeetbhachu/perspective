@@ -42,6 +42,7 @@ export function HelpfulButton({ post }: { post: Post }) {
     return (
       <div className="helpful">
         <Link to="/login" className="helpful-button">
+          <BulbIcon />
           Helped me understand
         </Link>
         {count}
@@ -64,11 +65,30 @@ export function HelpfulButton({ post }: { post: Post }) {
           vote.mutate({ postId: post.id, voted: !post.votedByMe });
         }}
       >
+        <BulbIcon />
         {post.votedByMe ? "✓ Helped me understand" : "Helped me understand"}
       </button>
       {count}
       {reason && <p className="field-hint">{reason}</p>}
       {vote.error && <p className="form-error">{vote.error.message}</p>}
     </div>
+  );
+}
+
+function BulbIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z" />
+    </svg>
   );
 }

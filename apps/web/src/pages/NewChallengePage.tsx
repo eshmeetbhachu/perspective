@@ -6,8 +6,10 @@ import { useCreateChallenge } from "../challenges";
 import { Field } from "../components/Field";
 import { errorsFromApi, type FieldErrors, validate } from "../forms";
 import { usePost } from "../posts";
+import { usePageTitle } from "../title";
 
 export function NewChallengePage() {
+  usePageTitle("Challenge a post");
   const { id = "" } = useParams();
   const { data: user } = useCurrentUser();
   const post = usePost(id);

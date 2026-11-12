@@ -4,8 +4,10 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { useResetPassword } from "../auth";
 import { Field } from "../components/Field";
 import { errorsFromApi, type FieldErrors, validate } from "../forms";
+import { usePageTitle } from "../title";
 
 export function ResetPasswordPage() {
+  usePageTitle("Choose a new password");
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const reset = useResetPassword();

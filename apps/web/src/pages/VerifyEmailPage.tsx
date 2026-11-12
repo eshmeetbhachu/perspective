@@ -1,7 +1,9 @@
 import { Link, useSearchParams } from "react-router";
 import { useCurrentUser, useVerifyEmail } from "../auth";
+import { usePageTitle } from "../title";
 
 export function VerifyEmailPage() {
+  usePageTitle("Confirm your email");
   const [searchParams] = useSearchParams();
   const verify = useVerifyEmail(searchParams.get("token") ?? "");
   const { data: user } = useCurrentUser();

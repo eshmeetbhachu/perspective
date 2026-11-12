@@ -4,8 +4,10 @@ import { Link } from "react-router";
 import { useForgotPassword } from "../auth";
 import { Field } from "../components/Field";
 import { errorsFromApi, type FieldErrors, validate } from "../forms";
+import { usePageTitle } from "../title";
 
 export function ForgotPasswordPage() {
+  usePageTitle("Reset your password");
   const forgot = useForgotPassword();
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});

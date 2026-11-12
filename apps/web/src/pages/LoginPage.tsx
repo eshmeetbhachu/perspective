@@ -7,6 +7,7 @@ import {
   useGooglePending,
   useLogin,
 } from "../auth";
+import { AuthLayout } from "../components/AuthLayout";
 import { Field } from "../components/Field";
 import { GoogleButton } from "../components/GoogleButton";
 import { errorsFromApi, type FieldErrors, validate } from "../forms";
@@ -61,8 +62,10 @@ export function LoginPage() {
   }
 
   return (
-    <section className="card">
-      <h1>Log in</h1>
+    <AuthLayout
+      title="Welcome back"
+      intro="Log in to say where you stand, write posts and vote."
+    >
       {linking && pending.data && (
         <p className="notice">
           An account with <strong>{pending.data.email}</strong> already exists.
@@ -70,6 +73,7 @@ export function LoginPage() {
         </p>
       )}
       {googleError && <p className="form-error">{googleError}</p>}
+      {!linking && <GoogleButton />}
       <form onSubmit={handleSubmit} noValidate>
         <Field
           label="Email"
@@ -99,10 +103,9 @@ export function LoginPage() {
           {login.isPending ? "Logging in…" : "Log in"}
         </button>
       </form>
-      {!linking && <GoogleButton />}
-      <p className="muted">
-        New here? <Link to="/signup">Create an account</Link>
+      <p className="auth-switch">
+        New to Perspective? <Link to="/signup">Create an account</Link>
       </p>
-    </section>
+    </AuthLayout>
   );
 }

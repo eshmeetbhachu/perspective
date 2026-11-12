@@ -1,19 +1,19 @@
 import { CROSS_SIDE_BADGE_MIN, type Post } from "@perspective/shared";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { useCurrentUser } from "../auth";
 import { renderMarkdown } from "../markdown";
 import { useDeletePost } from "../posts";
 import { HelpfulButton } from "./HelpfulButton";
-import { ReportButton } from "./ReportButton";
 import { formatDate } from "./QuestionCard";
+import { ReportButton } from "./ReportButton";
 
-const LONG_POST = 600;
+// Longer posts show their start here and continue on their own page.
+const LONG_POST = 420;
 
 export function PostCard({ post }: { post: Post }) {
   const { data: user } = useCurrentUser();
   const deletePost = useDeletePost();
-  const [expanded, setExpanded] = useState(false);
   const html = useMemo(() => renderMarkdown(post.body), [post.body]);
   const isOwn = Boolean(user && post.author?.username === user.username);
   const isLong = post.body.length > LONG_POST;
@@ -28,29 +28,29 @@ export function PostCard({ post }: { post: Post }) {
           Valued across sides
         </p>
       )}
-      <h3 className="post-title">{post.title}</h3>
+      <h3 className="post-title">
+        <Link to={`/posts/${post.id}`}>{post.title}</Link>
+      </h3>
       <div
-        className={`markdown ${isLong && !expanded ? "clamped" : ""}`}
+        className={`markdown ${isLong ? "clamped" : ""}`}
         // Sanitized by renderMarkdown (DOMPurify).
         dangerouslySetInnerHTML={{ __html: html }}
       />
       {isLong && (
-        <button
-          type="button"
-          className="link-button small"
-          onClick={() => {
-            setExpanded((value) => !value);
-          }}
-        >
-          {expanded ? "Show less" : "Show more"}
-        </button>
+        <Link to={`/posts/${post.id}`} className="read-more">
+          Read the full post
+        </Link>
       )}
-      <HelpfulButton post={post} />
-      <p className="question-meta">
-        {post.author ? post.author.username : "deleted account"} ·{" "}
-        {formatDate(post.createdAt)}
-        {post.editedAt && " · edited"}
-      </p>
+
+      <div className="post-card-footer">
+        <HelpfulButton post={post} />
+        <p className="question-meta">
+          {post.author ? post.author.username : "deleted account"} ·{" "}
+          {formatDate(post.createdAt)}
+          {post.editedAt && " · edited"}
+        </p>
+      </div>
+
       <div className="post-actions">
         <Link to={`/posts/${post.id}`}>
           {post.challengeCount === 0
@@ -61,24 +61,24 @@ export function PostCard({ post }: { post: Post }) {
           <Link to={`/posts/${post.id}/challenge`}>Challenge</Link>
         )}
         {!isOwn && <ReportButton targetType="post" targetId={post.id} />}
+        {isOwn && (
+          <>
+            <Link to={`/posts/${post.id}/edit`}>Edit</Link>
+            <button
+              type="button"
+              className="link-button danger"
+              disabled={deletePost.isPending}
+              onClick={() => {
+                if (window.confirm("Delete this post? This can't be undone.")) {
+                  deletePost.mutate(post.id);
+                }
+              }}
+            >
+              Delete
+            </button>
+          </>
+        )}
       </div>
-      {isOwn && (
-        <div className="post-actions">
-          <Link to={`/posts/${post.id}/edit`}>Edit</Link>
-          <button
-            type="button"
-            className="link-button danger"
-            disabled={deletePost.isPending}
-            onClick={() => {
-              if (window.confirm("Delete this post? This can't be undone.")) {
-                deletePost.mutate(post.id);
-              }
-            }}
-          >
-            Delete
-          </button>
-        </div>
-      )}
     </li>
   );
 }

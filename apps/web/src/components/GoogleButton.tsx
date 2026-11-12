@@ -20,15 +20,16 @@ export function GoogleButton({
     );
   }
 
+  // Shown above the email form, so the divider comes after it.
   return (
     <>
-      <p className="divider">or</p>
       <a
         href="/api/auth/google/start?intent=login"
         className="button button-google"
       >
         Continue with Google
       </a>
+      <p className="divider">or with email</p>
     </>
   );
 }

@@ -5,8 +5,10 @@ import { useCurrentUser, useResendVerification } from "../auth";
 import { Field } from "../components/Field";
 import { errorsFromApi, type FieldErrors, validate } from "../forms";
 import { useAskQuestion, useSimilarQuestions } from "../questions";
+import { usePageTitle } from "../title";
 
 export function AskPage() {
+  usePageTitle("Ask a question");
   const { data: user } = useCurrentUser();
   const ask = useAskQuestion();
   const resend = useResendVerification();

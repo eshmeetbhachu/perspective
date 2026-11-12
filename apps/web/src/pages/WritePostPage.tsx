@@ -3,8 +3,10 @@ import { useCurrentUser } from "../auth";
 import { PostEditor } from "../components/PostEditor";
 import { useMyStance, useWritePost } from "../posts";
 import { useQuestion } from "../questions";
+import { usePageTitle } from "../title";
 
 export function WritePostPage() {
+  usePageTitle("Write a post");
   const { slug = "" } = useParams();
   const { data: user } = useCurrentUser();
   const question = useQuestion(slug);

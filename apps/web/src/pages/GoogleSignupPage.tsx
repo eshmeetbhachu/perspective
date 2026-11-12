@@ -8,8 +8,10 @@ import {
 } from "../auth";
 import { Field } from "../components/Field";
 import { errorsFromApi, type FieldErrors, validate } from "../forms";
+import { usePageTitle } from "../title";
 
 export function GoogleSignupPage() {
+  usePageTitle("Finish signing up");
   const { data: user } = useCurrentUser();
   const pending = useGooglePending();
   const complete = useCompleteGoogleSignup();

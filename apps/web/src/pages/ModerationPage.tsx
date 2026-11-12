@@ -10,6 +10,7 @@ import { Link, useSearchParams } from "react-router";
 import { useCurrentUser } from "../auth";
 import { formatDate } from "../components/QuestionCard";
 import { useAudit, useBan, useModerate, useQueue } from "../moderation";
+import { usePageTitle } from "../title";
 
 const TABS = { queue: "Reports", audit: "Audit log", users: "Users" } as const;
 type Tab = keyof typeof TABS;
@@ -23,6 +24,7 @@ const ACTION_LABELS: Record<AuditEntry["action"], string> = {
 };
 
 export function ModerationPage() {
+  usePageTitle("Moderation");
   const { data: user } = useCurrentUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");

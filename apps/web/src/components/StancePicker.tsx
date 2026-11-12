@@ -17,9 +17,12 @@ export function StancePicker({ slug }: { slug: string }) {
 
   if (!user) {
     return (
-      <p className="stance-picker muted">
-        <Link to="/login">Log in</Link> to say where you stand and write a post.
-      </p>
+      <div className="stance-picker">
+        <p>Where do you stand?</p>
+        <p className="stance-picker-note">
+          <Link to="/login">Log in</Link> to choose a side and write a post.
+        </p>
+      </div>
     );
   }
   if (!myStance.data) return null;

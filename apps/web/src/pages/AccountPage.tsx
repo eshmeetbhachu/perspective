@@ -1,8 +1,10 @@
 import { useSearchParams } from "react-router";
 import { useCurrentUser, useProviders, useResendVerification } from "../auth";
 import { GoogleButton } from "../components/GoogleButton";
+import { usePageTitle } from "../title";
 
 export function AccountPage() {
+  usePageTitle("Your account");
   const { data: user } = useCurrentUser();
   const { data: providers } = useProviders();
   const resend = useResendVerification();

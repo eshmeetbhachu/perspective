@@ -6,7 +6,13 @@ import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
-  globalIgnores(["**/dist/", "**/coverage/"]),
+  // Build output and test reports are generated, not ours to lint.
+  globalIgnores([
+    "**/dist/",
+    "**/coverage/",
+    "e2e/test-results/",
+    "e2e/playwright-report/",
+  ]),
 
   // General JavaScript mistakes (unused variables, unreachable code, ...).
   eslint.configs.recommended,

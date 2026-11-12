@@ -2,6 +2,7 @@ import type {
   CreateQuestionInput,
   QuestionListResponse,
   QuestionResponse,
+  QuestionSort,
 } from "@perspective/shared";
 import {
   useInfiniteQuery,
@@ -12,15 +13,24 @@ import {
 import { useEffect, useState } from "react";
 import { api } from "./api";
 
-export function useLatestQuestions() {
+export function useQuestionList(sort: QuestionSort) {
   return useInfiniteQuery({
-    queryKey: ["questions", "latest"],
-    queryFn: ({ pageParam }) =>
-      api<QuestionListResponse>(
-        pageParam ? `/questions?cursor=${pageParam}` : "/questions",
-      ),
+    queryKey: ["questions", "list", sort],
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ sort });
+      if (pageParam) params.set("cursor", pageParam);
+      return api<QuestionListResponse>(`/questions?${params.toString()}`);
+    },
     initialPageParam: "",
     getNextPageParam: (page) => page.nextCursor ?? undefined,
+  });
+}
+
+// The landing page's short list of questions with the most people taking part.
+export function useFeaturedQuestions() {
+  return useQuery({
+    queryKey: ["questions", "featured"],
+    queryFn: () => api<QuestionListResponse>("/questions?sort=active&limit=6"),
   });
 }
 
@@ -67,6 +77,7 @@ export function useQuestion(slug: string) {
     queryKey: ["question", slug],
     queryFn: () =>
       api<QuestionResponse>(`/questions/${encodeURIComponent(slug)}`),
+    enabled: slug.length > 0,
     retry: false,
   });
 }

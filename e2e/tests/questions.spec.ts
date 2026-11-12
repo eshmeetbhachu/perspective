@@ -24,7 +24,7 @@ test("ask a question, find it, and get duplicate suggestions", async ({
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
   await expect(page.locator(".column")).toHaveCount(3);
 
-  await page.goto("/");
+  await page.goto("/questions");
   await page.getByLabel("Search questions").fill("votes");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByRole("link", { name: title })).toBeVisible();

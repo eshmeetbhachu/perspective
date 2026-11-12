@@ -2,6 +2,7 @@ import { registerSchema } from "@perspective/shared";
 import { type SubmitEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import { useCurrentUser, useRegister } from "../auth";
+import { AuthLayout } from "../components/AuthLayout";
 import { Field } from "../components/Field";
 import { GoogleButton } from "../components/GoogleButton";
 import { errorsFromApi, type FieldErrors, validate } from "../forms";
@@ -48,8 +49,11 @@ export function SignupPage() {
   }
 
   return (
-    <section className="card">
-      <h1>Create your account</h1>
+    <AuthLayout
+      title="Create your account"
+      intro="Take a side, explain your reasoning, and read the other sides."
+    >
+      <GoogleButton />
       <form onSubmit={handleSubmit} noValidate>
         <Field
           label="Username"
@@ -87,10 +91,9 @@ export function SignupPage() {
           {register.isPending ? "Creating account…" : "Sign up"}
         </button>
       </form>
-      <GoogleButton />
-      <p className="muted">
+      <p className="auth-switch">
         Already have an account? <Link to="/login">Log in</Link>
       </p>
-    </section>
+    </AuthLayout>
   );
 }

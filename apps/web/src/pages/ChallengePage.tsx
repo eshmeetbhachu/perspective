@@ -7,8 +7,10 @@ import { formatDate } from "../components/QuestionCard";
 import { ReportButton } from "../components/ReportButton";
 import { ReplyForm, Thread } from "../components/Thread";
 import { renderMarkdown } from "../markdown";
+import { usePageTitle } from "../title";
 
 export function ChallengePage() {
+  usePageTitle("Challenge");
   const { id = "" } = useParams();
   const [searchParams] = useSearchParams();
   const root = searchParams.get("root");
