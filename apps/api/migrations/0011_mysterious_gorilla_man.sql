@@ -1,0 +1,7 @@
+ALTER TABLE "questions" ADD COLUMN "for_count" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "questions" ADD COLUMN "neutral_count" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "questions" ADD COLUMN "against_count" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+UPDATE "questions" q SET "for_count" = s.for_count, "neutral_count" = s.neutral_count, "against_count" = s.against_count FROM (SELECT "question_id", count(*) FILTER (WHERE "stance" = 'for')::int AS for_count, count(*) FILTER (WHERE "stance" = 'neutral')::int AS neutral_count, count(*) FILTER (WHERE "stance" = 'against')::int AS against_count FROM "user_stances" GROUP BY "question_id") s WHERE s."question_id" = q."id";--> statement-breakpoint
+CREATE INDEX "questions_active_idx" ON "questions" USING btree (("for_count" + "neutral_count" + "against_count") desc,"id" DESC NULLS LAST) WHERE "questions"."status" = 'published';--> statement-breakpoint
+CREATE INDEX "questions_divided_idx" ON "questions" USING btree (least("for_count", "against_count") desc,"id" DESC NULLS LAST) WHERE "questions"."status" = 'published';--> statement-breakpoint
+ALTER TABLE "questions" ADD CONSTRAINT "questions_stance_counts_positive" CHECK ("questions"."for_count" >= 0 and "questions"."neutral_count" >= 0 and "questions"."against_count" >= 0);

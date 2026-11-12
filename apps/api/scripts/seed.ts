@@ -23,6 +23,7 @@ import {
 } from "../src/db/schema";
 import { hashPassword } from "../src/modules/auth/passwords";
 import { slugify } from "../src/modules/questions/slugs";
+import { recountStances } from "../src/modules/stances/counts";
 import { recomputeScores } from "../src/modules/votes/scores";
 import { voteWeight } from "../src/modules/votes/weights";
 
@@ -562,6 +563,7 @@ async function seed(userCount: number, questionCount: number) {
   }
 
   await recomputeScores();
+  await recountStances();
   const [scored] = await db
     .select({
       count: sql<number>`count(*) filter (where helpful_score > 0)::int`,

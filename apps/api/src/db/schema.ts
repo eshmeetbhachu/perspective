@@ -173,11 +173,37 @@ export const questions = pgTable(
       sql`setweight(to_tsvector('english', title), 'A') || setweight(to_tsvector('english', description), 'B')`,
     ),
     createdAt: timestamptz().notNull().defaultNow(),
+    // How many people stand on each side, kept up to date in the same
+    // transaction as every stance change, so listings never recount
+    // (like posts.helpfulScore).
+    forCount: integer().notNull().default(0),
+    neutralCount: integer().notNull().default(0),
+    againstCount: integer().notNull().default(0),
   },
   (t) => [
     uniqueIndex("questions_slug_unique").on(t.slug),
     // Newest-first listing: UUIDv7 ids are in creation order.
     index("questions_status_id_idx").on(t.status, t.id.desc()),
+    // "Most active": everyone with a stance.
+    index("questions_active_idx")
+      .on(
+        sql`(${t.forCount} + ${t.neutralCount} + ${t.againstCount}) desc`,
+        // NULLS FIRST is what `order by id desc` means, so the index order
+        // matches the query exactly and no extra sort step is needed.
+        t.id.desc().nullsFirst(),
+      )
+      .where(sql`${t.status} = 'published'`),
+    // "Most divided": the smaller of For and Against, so both sides are big.
+    index("questions_divided_idx")
+      .on(
+        sql`least(${t.forCount}, ${t.againstCount}) desc`,
+        t.id.desc().nullsFirst(),
+      )
+      .where(sql`${t.status} = 'published'`),
+    check(
+      "questions_stance_counts_positive",
+      sql`${t.forCount} >= 0 and ${t.neutralCount} >= 0 and ${t.againstCount} >= 0`,
+    ),
     index("questions_created_by_idx").on(t.createdBy, t.createdAt),
     index("questions_search_idx").using("gin", t.searchVector),
     index("questions_title_trgm_idx").using("gin", t.title.op("gin_trgm_ops")),

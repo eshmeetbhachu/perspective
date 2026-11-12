@@ -2,11 +2,13 @@ import { myStanceResponseSchema, setStanceSchema } from "@perspective/shared";
 import { and, eq } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
+import { bumpCache } from "../../cache";
 import { db } from "../../db/client";
 import { stanceHistory, userStances } from "../../db/schema";
 import { AppError } from "../../errors";
 import { requireUser } from "../../plugins/auth";
 import { findPublishedQuestionId } from "../questions/find";
+import { moveStanceCount } from "./counts";
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const slugParams = z.object({ slug: z.string().min(1).max(200) });
@@ -91,6 +93,7 @@ export const stanceRoutes: FastifyPluginAsyncZod = async (app) => {
           await tx
             .insert(stanceHistory)
             .values({ userId: user.id, questionId, toStance: stance });
+          await moveStanceCount(tx, questionId, null, stance);
           return created;
         }
 
@@ -116,8 +119,11 @@ export const stanceRoutes: FastifyPluginAsyncZod = async (app) => {
           fromStance: current.stance,
           toStance: stance,
         });
+        await moveStanceCount(tx, questionId, current.stance, stance);
         return updated ?? current;
       });
+      // The question page shows how many people stand on each side.
+      await bumpCache(request.log, `question:${request.params.slug}`);
 
       return { stance: row.stance, changeableAt: changeableAt(row.updatedAt) };
     },

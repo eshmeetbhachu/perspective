@@ -7,7 +7,7 @@ import {
   questionSearchQuerySchema,
   similarQuestionsQuerySchema,
 } from "@perspective/shared";
-import { and, count, desc, eq, gt, lt, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, lt, type SQL, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import {
@@ -18,7 +18,7 @@ import {
 } from "../../cache";
 import { db, type Executor } from "../../db/client";
 import { uniqueViolation } from "../../db/errors";
-import { questions, users } from "../../db/schema";
+import { posts, questions, users } from "../../db/schema";
 import { AppError } from "../../errors";
 import { requireUser, requireVerifiedEmail } from "../../plugins/auth";
 import { slugify } from "./slugs";
@@ -33,19 +33,67 @@ const columns = {
   description: questions.description,
   createdAt: questions.createdAt,
   authorUsername: users.username,
+  forCount: questions.forCount,
+  neutralCount: questions.neutralCount,
+  againstCount: questions.againstCount,
+  // Counted from the posts_column_idx index, which holds only live posts.
+  postCount: sql<number>`(
+    select count(*) from ${posts}
+    where ${posts.questionId} = ${questions.id}
+      and ${posts.deletedAt} is null and ${posts.removedAt} is null
+  )::int`,
 };
 
-type Row = { createdAt: Date; authorUsername: string | null } & Omit<
-  Question,
-  "createdAt" | "author"
->;
+interface Row {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  createdAt: Date;
+  authorUsername: string | null;
+  forCount: number;
+  neutralCount: number;
+  againstCount: number;
+  postCount: number;
+}
 
-function toQuestion({ authorUsername, createdAt, ...row }: Row): Question {
+function toQuestion(row: Row): Question {
   return {
-    ...row,
-    createdAt: createdAt.toISOString(),
-    author: authorUsername ? { username: authorUsername } : null,
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    createdAt: row.createdAt.toISOString(),
+    author: row.authorUsername ? { username: row.authorUsername } : null,
+    stanceCounts: {
+      for: row.forCount,
+      neutral: row.neutralCount,
+      against: row.againstCount,
+    },
+    postCount: row.postCount,
   };
+}
+
+// The ranked sorts, written exactly as their indexes are, so Postgres can use
+// them: questions_active_idx and questions_divided_idx.
+const ranks: Record<
+  "active" | "divided",
+  { sql: SQL; of: (row: Row) => number }
+> = {
+  active: {
+    sql: sql`(${questions.forCount} + ${questions.neutralCount} + ${questions.againstCount})`,
+    of: (row) => row.forCount + row.neutralCount + row.againstCount,
+  },
+  divided: {
+    sql: sql`least(${questions.forCount}, ${questions.againstCount})`,
+    of: (row) => Math.min(row.forCount, row.againstCount),
+  },
+};
+
+const rankedCursor = z.string().regex(/^\d{1,10}:[0-9a-f-]{36}$/);
+
+function badCursor(): AppError {
+  return new AppError(400, "BAD_REQUEST", "That page link is no longer valid");
 }
 
 function selectQuestions(reader: Executor = db) {
@@ -125,8 +173,9 @@ export const questionRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   );
 
-  // Newest first. The cursor is the last id seen: UUIDv7 ids sort by
-  // creation time, so "older than this id" is one index range scan.
+  // Newest first by default. The cursor is the last id seen: UUIDv7 ids sort
+  // by creation time, so "older than this id" is one index range scan. The
+  // ranked sorts use "rank:id" the same way, in their own index's order.
   app.get(
     "/questions",
     {
@@ -137,16 +186,38 @@ export const questionRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => {
-      const { cursor, limit } = request.query;
+      const { sort, cursor, limit } = request.query;
+      const rank = sort === "new" ? null : ranks[sort];
+
+      let after: SQL | undefined;
+      if (cursor && rank) {
+        if (!rankedCursor.safeParse(cursor).success) throw badCursor();
+        const [value, id] = cursor.split(":");
+        after = sql`(${rank.sql}, ${questions.id}) < (${Number(value)}, ${id})`;
+      } else if (cursor) {
+        if (!z.uuid().safeParse(cursor).success) throw badCursor();
+        after = lt(questions.id, cursor);
+      }
+
       const rows = await selectQuestions(readerFor(request))
-        .where(cursor ? and(published, lt(questions.id, cursor)) : published)
-        .orderBy(desc(questions.id))
+        .where(and(published, after))
+        .orderBy(
+          ...(rank
+            ? [desc(rank.sql), desc(questions.id)]
+            : [desc(questions.id)]),
+        )
         .limit(limit + 1);
 
       const page = rows.slice(0, limit);
+      const last = page.at(-1);
       return {
         questions: page.map(toQuestion),
-        nextCursor: rows.length > limit ? (page.at(-1)?.id ?? null) : null,
+        nextCursor:
+          rows.length > limit && last
+            ? rank
+              ? `${String(rank.of(last))}:${last.id}`
+              : last.id
+            : null,
       };
     },
   );

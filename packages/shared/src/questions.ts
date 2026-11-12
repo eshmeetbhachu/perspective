@@ -29,6 +29,13 @@ export const questionSchema = z.object({
   description: z.string(),
   createdAt: z.string(),
   author: z.object({ username: z.string() }).nullable(),
+  // How many people stand on each side, and how many live posts there are.
+  stanceCounts: z.object({
+    for: z.number().int(),
+    neutral: z.number().int(),
+    against: z.number().int(),
+  }),
+  postCount: z.number().int(),
 });
 export type Question = z.infer<typeof questionSchema>;
 
@@ -37,12 +44,18 @@ export type QuestionResponse = z.infer<typeof questionResponseSchema>;
 
 export const questionListResponseSchema = z.object({
   questions: z.array(questionSchema),
-  nextCursor: z.uuid().nullable(),
+  nextCursor: z.string().nullable(),
 });
 export type QuestionListResponse = z.infer<typeof questionListResponseSchema>;
 
+// Newest first; most people with a stance; or the biggest smaller side
+// between For and Against (many people on both).
+export const QUESTION_SORTS = ["new", "active", "divided"] as const;
+export type QuestionSort = (typeof QUESTION_SORTS)[number];
+
 export const questionListQuerySchema = z.object({
-  cursor: z.uuid().optional(),
+  sort: z.enum(QUESTION_SORTS).default("new"),
+  cursor: z.string().max(100).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 

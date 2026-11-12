@@ -172,8 +172,10 @@ export async function storeInCache(
 }
 
 // The question list and search change when questions are added or removed.
+// They also show stance counts, which change too often to invalidate on
+// every stance: a minute of staleness there is fine (D74).
 export const questionListCache: CacheConfig = {
-  ttlSeconds: 600,
+  ttlSeconds: 60,
   scopes: () => ["questions", "moderation"],
 };
 
