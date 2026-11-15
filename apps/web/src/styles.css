@@ -554,6 +554,7 @@ h3 {
   height: clamp(50vw, 100vh, 55.5vw);
   height: clamp(50vw, 100svh, 55.5vw);
   overflow: hidden;
+  container-type: size;
 }
 
 /* Placed as in the design: slightly oversized and nudged left. */
@@ -568,14 +569,17 @@ h3 {
 /* Heading, text and buttons move as one block, anchored at the bottom: if
    they need more height on small screens, the block grows up into the sky
    instead of overlapping the artwork. */
+/* --u is 1vw unless the space between the header (~104px) and the anchor is
+   too short for the block (~23 units tall), then everything shrinks to fit. */
 .hero-copy {
+  --u: min(1vw, calc((100cqh - 24.5vw - 104px) / 23));
   position: absolute;
   right: 5.3%;
   bottom: 24.5vw;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  width: 47.3%;
+  width: calc(47.3 * var(--u));
   text-align: right;
 }
 
@@ -592,48 +596,83 @@ h3 {
 
 .hero-lead {
   max-width: 34em;
-  margin: 1.4vw 0 0;
-  font-size: clamp(0.95rem, 1.15vw, 1.3rem);
+  margin: calc(1.4 * var(--u)) 0 0;
+  font-size: clamp(0.85rem, 1.15 * var(--u), 1.3rem);
   line-height: 1.55;
   color: var(--text-soft);
 }
 
 .hero-actions {
   display: flex;
-  gap: 1vw;
-  margin-top: 1.6vw;
+  gap: var(--u);
+  margin-top: calc(1.6 * var(--u));
 }
 
 /* Two classes, so these sizes win over the general .button rule. */
 .hero .hero-button {
   width: auto;
   padding: 0.85em 1.6em;
-  font-size: clamp(0.85rem, 1vw, 1.15rem);
+  font-size: clamp(0.8rem, var(--u), 1.15rem);
   white-space: nowrap;
 }
 
-@media (max-width: 760px) {
+/* Up to tablet width the artwork is too short to hold the text, so the text
+   goes above it instead. */
+@media (max-width: 1100px) {
   .hero {
     display: flex;
     flex-direction: column-reverse;
     height: auto;
-    padding-top: 76px;
+    padding-top: 96px;
+    container-type: normal;
   }
 
   .hero-art {
     position: static;
     width: 100%;
-    height: 300px;
+    height: 44vw;
     object-fit: cover;
-    object-position: 22% 100%;
+    object-position: 30% 100%;
   }
 
   .hero-copy {
     position: static;
     align-items: stretch;
     width: auto;
-    padding: 8px 20px 0;
+    max-width: 680px;
+    padding: 8px 24px 0;
+    margin: 0 auto;
     text-align: left;
+  }
+
+  .hero-lead {
+    margin-top: 20px;
+    font-size: 1.1rem;
+  }
+
+  .hero-actions {
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .hero .hero-button {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .hero {
+    padding-top: 76px;
+  }
+
+  .hero-art {
+    height: 300px;
+    object-fit: cover;
+    object-position: 22% 100%;
+  }
+
+  .hero-copy {
+    padding: 8px 20px 0;
   }
 
   .hero-lead {
